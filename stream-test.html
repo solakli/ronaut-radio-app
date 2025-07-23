@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Radio Stream Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+      body {
+        margin: 0;
+        background: black;
+      }
+      video {
+        width: 100%;
+        height: 100vh;
+        background: black;
+      }
+    </style>
+  </head>
+  <body>
+    <video id="video" controls autoplay></video>
+
+    <script>
+      const video = document.getElementById('video');
+      const livepeerURL = 'https://livepeercdn.studio/hls/9a9dkdlrisae9unc/index.m3u8';
+      const fallbackURL = 'http://89.117.16.160/hls/stream.m3u8';
+
+      function playStream(url) {
+        if (Hls.isSupported()) {
+          const hls = new Hls();
+          hls.loadSource(url);
+          hls.attachMedia(video);
+          hls.on(Hls.Events.ERROR, function (event, data) {
+            if (data.fatal && url === livepeerURL) {
+              console.warn('Livepeer failed. Falling back to VPS...');
+              hls.destroy();
+              playStream(fallbackURL);
+            }
+          });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = url;
+        }
+      }
+
+      playStream(livepeerURL);
+    </script>
+  </body>
+</html>

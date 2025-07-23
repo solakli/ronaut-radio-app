@@ -1,0 +1,110 @@
+<link href="https://vjs.zencdn.net/8.5.2/video-js.css" rel="stylesheet" />
+<div id="now-playing" style="color:white; font-size: 14px; padding-top: 10px;">Loading track info...</div>
+<div id="player-container">
+  <video
+    id="ronaut-player"
+    class="video-js vjs-default-skin"
+    controls
+    autoplay
+    muted
+    playsinline
+    width="640"
+    height="360"
+  >
+    <source src="https://stream.ronautradio.la/live/hls/stream.m3u8" type="application/x-mpegURL" />
+  </video>
+  <div id="overlay">
+    <div id="logo">RONAUT RADIO</div>
+    <div id="ticker">Loading current set...</div>
+  </div>
+</div> <!-- end of player-container -->
+
+<style>
+  #player-container {
+    position: relative;
+    width: 100%;
+    max-width: 100vw;
+    overflow: hidden;
+    background: black;
+  }
+
+  #video {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  #overlay {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    color: white;
+    font-family: monospace;
+    font-size: 1em;
+    background-color: rgba(0, 0, 0, 0.4);
+    padding: 5px 10px;
+    border-radius: 4px;
+  }
+
+  #logo {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+
+  #ticker {
+    display: none;
+    white-space: nowrap;
+    overflow: hidden;
+    animation: scroll-left 15s linear infinite;
+  }
+
+  @keyframes scroll-left {
+    from { transform: translateX(100%); }
+    to { transform: translateX(-100%); }
+  }
+</style>
+<script src="https://vjs.zencdn.net/8.5.2/video.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<script>
+  // All your JS here, after the DOM elements exist!
+  async function updateNowPlaying() {
+    try {
+      const res = await fetch("https://stream.ronautradio.la/api/now-playing");
+      const data = await res.json();
+      const nowPlayingText = "Now Playing: " + data.now_playing;
+      document.getElementById("now-playing").textContent = nowPlayingText;
+      document.getElementById("ticker").textContent      = nowPlayingText;
+      document.getElementById("ticker").style.display    = 'block';
+      document.getElementById("debug-json").textContent = "DEBUG: " + JSON.stringify(data);
+    } catch (err) {
+      console.error("Failed to fetch now playing:", err);
+      document.getElementById("debug-json").textContent = "DEBUG ERROR: " + err;
+    }
+  }
+
+  updateNowPlaying();
+  setInterval(updateNowPlaying, 10000);
+
+  const video = document.getElementById('ronaut-player');
+  if (Hls.isSupported()) {
+    const hls = new Hls();
+    hls.loadSource('https://stream.ronautradio.la/live/hls/stream.m3u8');
+    hls.attachMedia(video);
+    hls.on(Hls.Events.MANIFEST_PARSED, function () {
+      document.getElementById('ticker').style.display = 'block';
+      video.play();
+    });
+    hls.on(Hls.Events.ERROR, function (event, data) {
+      if (data.fatal) {
+        hls.destroy();
+      }
+    });
+  } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = 'https://stream.ronautradio.la/live/hls/stream.m3u8';
+    video.play().catch(() => {});
+  }
+</script>
+<div id="debug-json" style="position: fixed; bottom: 0; right: 0; background: black; color: lime; padding: 5px; font-size: 12px; font-family: monospace; z-index: 9999;">
+  DEBUG: Waiting for data...
+</div>
+</body>
