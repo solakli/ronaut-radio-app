@@ -2,7 +2,6 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app, origins=["https://ronautradio.la", "https://ronautradio.la/"])
 @app.route("/now-playing")
 def now_playing():
     try:

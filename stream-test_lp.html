@@ -8,8 +8,6 @@
     autoplay
     muted
     playsinline
-    width="640"
-    height="360"
   >
     <source src="https://stream.ronautradio.la/live/hls/stream.m3u8" type="application/x-mpegURL" />
   </video>
@@ -28,11 +26,7 @@
     background: black;
   }
 
-  #video {
-    width: 100%;
-    height: auto;
-    display: block;
-  }
+  /* #video rule removed */
 
   #overlay {
     position: absolute;
@@ -44,6 +38,7 @@
     background-color: rgba(0, 0, 0, 0.4);
     padding: 5px 10px;
     border-radius: 4px;
+    z-index: 10;
   }
 
   #logo {
@@ -52,10 +47,17 @@
   }
 
   #ticker {
-    display: none;
+    display: block;
     white-space: nowrap;
     overflow: hidden;
     animation: scroll-left 15s linear infinite;
+  }
+
+  #ronaut-player {
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    display: block;
   }
 
   @keyframes scroll-left {
