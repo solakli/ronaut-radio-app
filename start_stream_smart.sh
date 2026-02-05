@@ -22,12 +22,20 @@ flock -n 9 || { echo "Another streamer is running. Exiting."; exit 0; }
 : "${RECENCY_MAX_DUP:=5}"
 : "${RECENCY_BIAS_DAYS:=14}"
 
+# Now-playing and play-log paths
+: "${NOW_PLAYING_JSON:=/root/now_playing.json}"
+: "${PLAY_LOG:=/root/play_log.tsv}"
+: "${LIVE_MODE_FLAG:=/root/.live_mode}"
+: "${HLS_M3U8:=/var/www/html/hls/stream.m3u8}"
+
 # Ensure writable temp files exist
 : > "$FFMPEG_LOG"
 : > "$PLAYLIST_FILE" || true
 : > "$DURATIONS_FILE" || true
 : > /tmp/all_entries.txt || true
 : > "$STATE_FILE" || true
+touch "$PLAY_LOG"
+echo '{"file":"","display_name":"Starting...","started_at":0,"heartbeat":0,"playlist_index":0}' > "$NOW_PLAYING_JSON"
 
 # If the concat file is missing or empty, build a simple starter list from /root/*.mp4
 if [[ ! -s "$INPUT_CONCAT_FILE" ]]; then
@@ -179,18 +187,94 @@ run_ffmpeg() {
     -f flv "$RTMP_URL"
 }
 
+# ---------- Now-playing watcher (background, reads ffmpeg output) ----------
+
+write_now_playing() {
+  local file="$1"
+  local display playlist_idx now_ts tmp
+  display="${file##*/}"
+  display="${display%.mp4}"
+  now_ts=$(date +%s)
+
+  # Find playlist index (1-based line number in playlist.txt, convert to 0-based)
+  playlist_idx=$(grep -nF "$file" "$PLAYLIST_FILE" | head -n1 | cut -d: -f1 || echo "1")
+  playlist_idx=$(( ${playlist_idx:-1} - 1 ))
+  (( playlist_idx < 0 )) && playlist_idx=0
+
+  # Write now_playing.json atomically
+  tmp=$(mktemp)
+  cat > "$tmp" <<EOJSON
+{"file":"$file","display_name":"$display","started_at":$now_ts,"heartbeat":$now_ts,"playlist_index":$playlist_idx}
+EOJSON
+  mv -f "$tmp" "$NOW_PLAYING_JSON"
+
+  # Append to play log
+  printf '%s\t%s\n' "$now_ts" "$file" >> "$PLAY_LOG"
+
+  # Legacy compatibility
+  echo "$display" > /root/now_playing.txt
+
+  echo "[watcher] Now playing: $display (index $playlist_idx)" >> "$FFMPEG_LOG"
+}
+
+update_heartbeat() {
+  local now_ts
+  now_ts=$(date +%s)
+  if [[ -f "$NOW_PLAYING_JSON" ]]; then
+    sed -i "s/\"heartbeat\":[0-9]*/\"heartbeat\":$now_ts/" "$NOW_PLAYING_JSON"
+  fi
+}
+
+watcher_loop() {
+  # Spawn background heartbeat ticker to keep heartbeat fresh during long tracks
+  ( while true; do update_heartbeat; sleep 10; done ) &
+  local hb_pid=$!
+  trap "kill $hb_pid 2>/dev/null || true" RETURN
+
+  local line
+  while IFS= read -r line; do
+    # Match concat demuxer opening: [concat @ 0x...] Opening '/root/file.mp4' for reading
+    if [[ "$line" =~ Opening\ \'([^\']+\.mp4)\'\ for\ reading ]]; then
+      write_now_playing "${BASH_REMATCH[1]}"
+    fi
+  done
+
+  kill $hb_pid 2>/dev/null || true
+}
+
+# ---------- OBS-aware supervisor ----------
+
 echo "🚀 Starting FFmpeg…"
 
 # Build an initial long playlist before launching ffmpeg
 publish_playlist || { echo "❌ Failed to build initial playlist" | tee -a "$FFMPEG_LOG"; exit 1; }
 
-# Main supervise loop: run ffmpeg; when it exits, rebuild and restart
+# Main supervise loop: run ffmpeg; when it exits, check for OBS before restart
 while true; do
+  # Guard 1: Wait if live mode flag is set (operator triggered /api/go-live)
+  while [[ -f "$LIVE_MODE_FLAG" ]]; do
+    echo "[supervisor $(date -Is)] Live mode flag set — waiting for /api/stop-live…" | tee -a "$FFMPEG_LOG"
+    sleep 10
+  done
+
+  # Guard 2: Wait if HLS is fresh (another publisher like OBS is active)
+  while true; do
+    if [[ -f "$HLS_M3U8" ]]; then
+      m3u8_age=$(( $(date +%s) - $(stat -c %Y "$HLS_M3U8" 2>/dev/null || echo 0) ))
+      if (( m3u8_age < 15 )); then
+        echo "[supervisor $(date -Is)] HLS fresh (${m3u8_age}s old) — another publisher active, waiting…" | tee -a "$FFMPEG_LOG"
+        sleep 10
+        continue
+      fi
+    fi
+    break
+  done
+
   set +e
-  run_ffmpeg 2>&1 | tee -a "$FFMPEG_LOG"
+  run_ffmpeg 2>&1 | tee -a "$FFMPEG_LOG" | watcher_loop
   rc=${PIPESTATUS[0]}
   set -e
-  echo "[FFMPEG_EXIT $(date -Is)] rc=$rc — rebuilding and restarting in 2s…" | tee -a "$FFMPEG_LOG"
+  echo "[FFMPEG_EXIT $(date -Is)] rc=$rc — checking for OBS before restart…" | tee -a "$FFMPEG_LOG"
   sleep 2
   publish_playlist || echo "⚠️ rebuild failed — keeping previous playlist" | tee -a "$FFMPEG_LOG"
   # small backoff if ffmpeg crashed too fast
