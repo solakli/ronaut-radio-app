@@ -187,7 +187,7 @@ run_ffmpeg() {
     -f flv "$RTMP_URL"
 }
 
-# ---------- Now-playing watcher (background, reads ffmpeg output) ----------
+# ---------- Now-playing watcher (polls /proc/PID/fd for current mp4) ----------
 
 write_now_playing() {
   local file="$1"
@@ -225,21 +225,28 @@ update_heartbeat() {
   fi
 }
 
-watcher_loop() {
-  # Spawn background heartbeat ticker to keep heartbeat fresh during long tracks
-  ( while true; do update_heartbeat; sleep 10; done ) &
-  local hb_pid=$!
-  trap "kill $hb_pid 2>/dev/null || true" RETURN
+# Poll /proc/<pid>/fd to detect which mp4 ffmpeg currently has open.
+# Works regardless of ffmpeg log level or version.
+fd_watcher() {
+  local ffmpeg_pid="$1"
+  local current_file=""
 
-  local line
-  while IFS= read -r line; do
-    # Match concat demuxer opening: [concat @ 0x...] Opening '/root/file.mp4' for reading
-    if [[ "$line" =~ Opening\ \'([^\']+\.mp4)\'\ for\ reading ]]; then
-      write_now_playing "${BASH_REMATCH[1]}"
+  while kill -0 "$ffmpeg_pid" 2>/dev/null; do
+    # Find the most recently opened .mp4 file in ffmpeg's file descriptors
+    local new_file=""
+    new_file=$(ls -la /proc/"$ffmpeg_pid"/fd/ 2>/dev/null \
+      | grep '\.mp4' \
+      | awk '{print $NF}' \
+      | tail -n1)
+
+    if [[ -n "$new_file" && "$new_file" != "$current_file" ]]; then
+      current_file="$new_file"
+      write_now_playing "$current_file"
     fi
-  done
 
-  kill $hb_pid 2>/dev/null || true
+    update_heartbeat
+    sleep 5
+  done
 }
 
 # ---------- OBS-aware supervisor ----------
@@ -271,8 +278,19 @@ while true; do
   done
 
   set +e
-  run_ffmpeg 2>&1 | tee -a "$FFMPEG_LOG" | watcher_loop
+  # Start watcher in background — it finds ffmpeg's PID after a brief delay
+  ( sleep 3
+    _fpid=$(pgrep -f "ffmpeg.*concat" | head -n1)
+    if [[ -n "$_fpid" ]]; then
+      echo "[supervisor] ffmpeg PID=$_fpid — starting fd_watcher" >> "$FFMPEG_LOG"
+      fd_watcher "$_fpid"
+    fi
+  ) &
+  _watcher_bg=$!
+  run_ffmpeg 2>&1 | tee -a "$FFMPEG_LOG"
   rc=${PIPESTATUS[0]}
+  kill $_watcher_bg 2>/dev/null || true
+  wait $_watcher_bg 2>/dev/null || true
   set -e
   echo "[FFMPEG_EXIT $(date -Is)] rc=$rc — checking for OBS before restart…" | tee -a "$FFMPEG_LOG"
   sleep 2
