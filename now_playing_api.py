@@ -274,12 +274,27 @@ def sets():
     for pick in picks:
         fname = pick.get("filename", "")
         name = fname.replace(".mp4", "") if fname.endswith(".mp4") else fname
+
+        # Load tracklist if available
+        tracklist_path = "/root/tracklists/{}_tracklist.json".format(name)
+        tracklist = []
+        genres = []
+        try:
+            with open(tracklist_path, "r") as f:
+                tl_data = json.load(f)
+                tracklist = tl_data.get("tracklist", [])
+                genres = tl_data.get("genres", [])
+        except (OSError, json.JSONDecodeError):
+            pass
+
         result.append({
             "filename": fname,
             "title": pick.get("title", name),
             "description": pick.get("description", ""),
             "thumbnail": "/sets/thumbs/{}.jpg".format(name),
             "url": "/sets/{}".format(fname),
+            "genres": genres,
+            "tracklist": tracklist,
         })
     return jsonify(sets=result)
 
