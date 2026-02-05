@@ -112,6 +112,7 @@ def parse_shazam_result(result: dict) -> dict | None:
     resources = result.get("resources", {})
     albums = resources.get("albums", {})
     artists_data = resources.get("artists", {})
+    genres_data = resources.get("genres", {})
 
     # Get album info (contains artist name and album name)
     album_info = {}
@@ -128,6 +129,13 @@ def parse_shazam_result(result: dict) -> dict | None:
         if attrs.get("name"):
             artist_name = attrs["name"]
             break
+
+    # Get genres
+    genres = []
+    for genre in genres_data.values():
+        attrs = genre.get("attributes", {})
+        if attrs.get("name") and attrs["name"] != "Music":  # Skip generic "Music"
+            genres.append(attrs["name"])
 
     # The album's artistName often has the full artist list
     full_artist = album_info.get("artistName", artist_name)
@@ -151,6 +159,7 @@ def parse_shazam_result(result: dict) -> dict | None:
         "deezer_id": None,
         "external_ids": {},
         "shazam_id": shazam_id,
+        "genres": genres,
     }
 
 
@@ -337,6 +346,14 @@ def process_set(mp4_path: str, output_json: str = None) -> list:
     print("\nApplying confidence filters...")
     tracklist = apply_confidence_filter(raw_matches)
 
+    # Aggregate genres from all tracks to determine set vibe
+    from collections import Counter
+    all_genres = []
+    for track in tracklist:
+        all_genres.extend(track.get("genres", []))
+    genre_counts = Counter(all_genres)
+    top_genres = [g for g, _ in genre_counts.most_common(5)]  # Top 5 genres
+
     # Save results
     output = {
         "set_name": set_name,
@@ -344,6 +361,7 @@ def process_set(mp4_path: str, output_json: str = None) -> list:
         "duration_seconds": duration,
         "processed_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "api_used": "shazam" if USE_SHAZAM else "acrcloud",
+        "genres": top_genres,  # Aggregated set genres/vibes
         "settings": {
             "chunk_duration": chunk_dur,
             "chunk_interval": CHUNK_INTERVAL,
@@ -402,6 +420,7 @@ def apply_confidence_filter(raw_matches: list) -> list:
                     "artists": current_track["artists"],
                     "album": current_track["album"],
                     "label": current_track["label"],
+                    "genres": current_track.get("genres", []),
                     "consecutive_matches": consecutive_count,
                     "confidence": "high" if consecutive_count >= 3 else "medium",
                 })
@@ -421,6 +440,7 @@ def apply_confidence_filter(raw_matches: list) -> list:
             "artists": current_track["artists"],
             "album": current_track["album"],
             "label": current_track["label"],
+            "genres": current_track.get("genres", []),
             "consecutive_matches": consecutive_count,
             "confidence": "high" if consecutive_count >= 3 else "medium",
         })
