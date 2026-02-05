@@ -156,6 +156,21 @@ def programme():
         "duration": current_dur,
     }
 
+    # Build recent list (last 2-3 tracks that played)
+    recent_count = min(int(request.args.get("recent", 3)), 5)
+    recent = []
+    prev_start = started_at
+    for offset in range(1, recent_count + 1):
+        idx = (current_idx - offset) % len(playlist)
+        track_file = playlist[idx].strip()
+        dur = durations.get(track_file, 0)
+        prev_start -= dur
+        recent.insert(0, {
+            "display_name": _display_name(track_file),
+            "ended_at": prev_start + dur,
+            "duration": dur,
+        })
+
     # Build upcoming list with estimated start times
     upcoming = []
     next_start = (started_at + current_dur) if (started_at > 0 and current_dur > 0) else int(time.time())
@@ -171,7 +186,7 @@ def programme():
         })
         next_start += dur
 
-    return jsonify(mode=mode, current=current, upcoming=upcoming)
+    return jsonify(mode=mode, current=current, recent=recent, upcoming=upcoming)
 
 
 @app.route("/play-log")
