@@ -30,7 +30,8 @@ SHAZAM_API_KEY = "fa8045a805mshe489b3f3302c27ep143a5ajsnd9b2ead05c0e"
 SHAZAM_API_HOST = "shazam.p.rapidapi.com"
 
 # Recognition settings
-CHUNK_DURATION = 20  # seconds per chunk
+CHUNK_DURATION_ACR = 20  # seconds per chunk for ACRCloud
+CHUNK_DURATION_SHAZAM = 5  # seconds per chunk for Shazam (API has size limit)
 CHUNK_INTERVAL = 30  # seconds between chunk starts (can overlap or skip)
 MIN_CONSECUTIVE = 2  # require N consecutive matches to confirm track
 MAX_POPULARITY = 100000  # reject tracks with more Shazam plays than this
@@ -50,7 +51,8 @@ def sign_request(string_to_sign: str, access_secret: str) -> str:
 
 
 def extract_chunk_raw(mp4_path: str, start_time: int, duration: int, output_path: str) -> bool:
-    """Extract raw audio chunk for Shazam (44100Hz mono PCM as base64)."""
+    """Extract raw audio chunk for Shazam (44100Hz mono PCM, smaller for API limit)."""
+    # Shazam API has ~500KB limit, so 5s at 44100Hz mono 16-bit is ~440KB
     cmd = [
         "ffmpeg",
         "-y",
@@ -61,7 +63,7 @@ def extract_chunk_raw(mp4_path: str, start_time: int, duration: int, output_path
         "-acodec", "pcm_s16le",
         "-ar", "44100",
         "-ac", "1",
-        "-f", "wav",
+        "-f", "s16le",  # Raw PCM, no WAV header (smaller)
         output_path,
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -261,7 +263,8 @@ def process_set(mp4_path: str, output_json: str = None) -> list:
 
     # Process chunks
     raw_matches = []
-    chunk_times = list(range(0, duration - CHUNK_DURATION, CHUNK_INTERVAL))
+    chunk_dur = CHUNK_DURATION_SHAZAM if USE_SHAZAM else CHUNK_DURATION_ACR
+    chunk_times = list(range(0, duration - chunk_dur, CHUNK_INTERVAL))
     total_chunks = len(chunk_times)
 
     api_name = "Shazam" if USE_SHAZAM else "ACRCloud"
@@ -271,11 +274,11 @@ def process_set(mp4_path: str, output_json: str = None) -> list:
         for i, start_time in enumerate(chunk_times):
             # Use different formats for each API
             if USE_SHAZAM:
-                chunk_path = os.path.join(tmpdir, f"chunk_{i:04d}.wav")
-                extract_ok = extract_chunk_raw(mp4_path, start_time, CHUNK_DURATION, chunk_path)
+                chunk_path = os.path.join(tmpdir, f"chunk_{i:04d}.raw")
+                extract_ok = extract_chunk_raw(mp4_path, start_time, chunk_dur, chunk_path)
             else:
                 chunk_path = os.path.join(tmpdir, f"chunk_{i:04d}.mp3")
-                extract_ok = extract_chunk(mp4_path, start_time, CHUNK_DURATION, chunk_path)
+                extract_ok = extract_chunk(mp4_path, start_time, chunk_dur, chunk_path)
 
             if not extract_ok:
                 print(f"  [{i+1}/{total_chunks}] {start_time//60}:{start_time%60:02d} - extraction failed")
@@ -319,7 +322,7 @@ def process_set(mp4_path: str, output_json: str = None) -> list:
         "processed_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "api_used": "shazam" if USE_SHAZAM else "acrcloud",
         "settings": {
-            "chunk_duration": CHUNK_DURATION,
+            "chunk_duration": chunk_dur,
             "chunk_interval": CHUNK_INTERVAL,
             "min_consecutive": MIN_CONSECUTIVE,
             "max_popularity": MAX_POPULARITY,
