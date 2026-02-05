@@ -29,7 +29,7 @@ CHUNK_DURATION = 20  # seconds per chunk
 CHUNK_INTERVAL = 30  # seconds between chunk starts (can overlap or skip)
 MIN_CONSECUTIVE = 2  # require N consecutive matches to confirm track
 MAX_POPULARITY = 100000  # reject tracks with more Shazam plays than this
-MIN_CONFIDENCE = 70  # minimum ACRCloud score (0-100)
+MIN_CONFIDENCE = 30  # minimum ACRCloud score (0-100) - lowered for rare vinyl
 
 
 def sign_request(string_to_sign: str, access_secret: str) -> str:
