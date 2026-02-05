@@ -1,0 +1,19 @@
+$ uname -a
+$ lsb_release -a
+$ systemctl status nginx || true
+$ systemctl list-units --type=service | egrep -i 'nginx|ffmpeg|flask|python|node|ronaut|stream' || true
+$ ps aux | egrep -i 'nginx|ffmpeg|python|flask|node|ronaut|stream' || true
+$ ss -lntp | egrep ':(1935|80|443|5050|3000)\b' || true
+$ nginx -V
+$ which nginx || true
+$ which ffmpeg || true
+$ which ffprobe || true
+$ which python || true
+$ which node || true
+$ nginx -T | head -n 200
+$ ls -lah /var/www/html /var/www/html/hls /var/run /root || true
+$ stat /var/www/html/hls || true
+$ stat /var/run/stream.lock || true
+$ find /root /srv /opt -maxdepth 3 -type d -name '*ronaut*' 2>/dev/null || true
+$ find /root /srv /opt -maxdepth 4 -type f -name 'start_stream*.sh' 2>/dev/null || true
+$ find /root /srv /opt -maxdepth 4 -type f -name '*now_playing*' 2>/dev/null || true

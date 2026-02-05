@@ -4,8 +4,8 @@ Server-to-Local Mapping
 This document will be finalized after running the server snapshot plan.
 Placeholders are based on the current repo configuration.
 
-Path Mappings (Initial Assumptions)
------------------------------------
+Path Mappings (From Snapshot)
+-----------------------------
 - Server: `/var/www/html/hls`
   Local:  `local implementation/hls`
 
@@ -21,27 +21,40 @@ Path Mappings (Initial Assumptions)
 - Server: `/root/*.mp4`
   Local:  `/Users/andreabenedetti/Movies`
 
+- Server repo location: `/root/ronaut-radio-app`
+  Local repo location: repo root
+
 Runtime Mapping
 ---------------
 - RTMP app name:
   Server: `live`
-  Local:  `live` (TODO: confirm from server)
+  Local:  `live`
 
 - RTMP publish URL:
   Server: `rtmp://<server-ip>/live/stream`
   Local:  `rtmp://localhost:1935/live/stream`
 
 - HLS URL:
-  Server: `https://<domain>/live/hls/stream.m3u8`
-  Local:  `http://localhost:8080/hls/stream.m3u8`
+  Server: `https://stream.ronautradio.la/live/hls/stream.m3u8`
+  Local:  `http://localhost:8080/live/hls/stream.m3u8`
 
 - API route:
   Server: `/api/now-playing` -> Flask `/now-playing`
   Local:  `http://localhost:5050/now-playing`
 
-TODO After Snapshot
--------------------
-- Confirm nginx include paths and RTMP block configuration.
-- Confirm exact HLS parameters (fragment length, playlist length, cleanup).
-- Confirm FFmpeg flags from production start scripts.
-- Confirm log file locations and formats.
+Snapshot Notes (Observed)
+-------------------------
+- HLS params:
+  - `hls_fragment 4s`
+  - `hls_playlist_length 60s`
+  - `hls_cleanup on`
+
+- FFmpeg (running):
+  - 60 fps, GOP 120
+  - Video: 3500k, maxrate 3500k, bufsize 7000k
+  - Audio: AAC-LC, 512k, 48000 Hz
+  - Uses `setpts`, `aresample`, `vsync 1`
+
+- Logs:
+  - Nginx: `/var/log/nginx/access.log`, `/var/log/nginx/error.log`
+  - FFmpeg: `/root/ffmpeg_random_stream.log`

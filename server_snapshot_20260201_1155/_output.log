@@ -1,0 +1,400 @@
+Linux vmi2717263.contaboserver.net 5.15.0-144-generic #157-Ubuntu SMP Mon Jun 16 07:33:10 UTC 2025 x86_64 x86_64 x86_64 GNU/Linux
+No LSB modules are available.
+Distributor ID:	Ubuntu
+Description:	Ubuntu 22.04.5 LTS
+Release:	22.04
+Codename:	jammy
+● nginx.service - A high performance web server and a reverse proxy server
+     Loaded: loaded (/lib/systemd/system/nginx.service; enabled; vendor preset: enabled)
+     Active: active (running) since Sun 2025-12-21 22:13:09 PST; 1 month 11 days ago
+       Docs: man:nginx(8)
+   Main PID: 530 (nginx)
+      Tasks: 8 (limit: 14255)
+     Memory: 40.6M
+        CPU: 1d 21min 23.374s
+     CGroup: /system.slice/nginx.service
+             ├─   530 "nginx: master process /usr/sbin/nginx -g daemon on; master_process on;"
+             ├─538454 "nginx: worker process" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" ""
+             ├─538455 "nginx: worker process" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" ""
+             ├─538456 "nginx: worker process" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" ""
+             ├─538457 "nginx: worker process" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" ""
+             ├─538458 "nginx: worker process" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" ""
+             ├─538459 "nginx: worker process" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" ""
+             └─538460 "nginx: cache manager process" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" ""
+
+Notice: journal has been rotated since unit was started, output may be incomplete.
+  kmod-static-nodes.service          loaded active exited  Create List of Static Device Nodes
+  nginx.service                      loaded active running A high performance web server and a reverse proxy server
+  systemd-tmpfiles-setup-dev.service loaded active exited  Create Static Device Nodes in /dev
+root         464  0.0  0.1  35316 19180 ?        Ss    2025   0:00 /usr/bin/python3 /usr/bin/networkd-dispatcher --run-startup-triggers
+root         530  0.0  0.0  64572 10484 ?        Ss    2025   0:00 nginx: master process /usr/sbin/nginx -g daemon on; master_process on;
+www-data  538454  0.0  0.0  66460 12104 ?        S    Jan19   7:28 nginx: worker process
+www-data  538455  1.4  0.1  67144 12748 ?        S    Jan19 264:32 nginx: worker process
+www-data  538456  0.0  0.0  64880 10628 ?        S    Jan19   0:00 nginx: worker process
+www-data  538457  0.0  0.0  64880 10756 ?        S    Jan19   0:00 nginx: worker process
+www-data  538458  0.0  0.0  64880  9852 ?        S    Jan19   0:00 nginx: worker process
+www-data  538459  0.0  0.0  64880  9952 ?        S    Jan19   0:00 nginx: worker process
+www-data  538460  0.0  0.0  64880  6808 ?        S    Jan19   4:03 nginx: cache manager process
+root      681106  0.0  0.0  10620  4300 ?        S    Jan25   0:00 bash /root/start_stream_smart.sh
+root      681309  0.0  0.0  10248  2232 ?        S    Jan25   0:00 bash /root/start_stream_smart.sh
+root      681310  0.1  0.0   8380  1012 ?        S    Jan25  11:12 tee -a /root/ffmpeg_random_stream.log
+root      681311  332  4.7 1585648 581008 ?      SLl  Jan25 32022:56 ffmpeg -hide_banner -loglevel info -re -fflags +genpts+igndts -f concat -safe 0 -i /root/input.txt -map 0:v:0 -map 0:a:0? -vf setpts=N/60/TB,format=yuv420p -c:v libx264 -preset veryfast -pix_fmt yuv420p -r 60 -g 120 -keyint_min 120 -sc_threshold 0 -x264-params scenecut=0:keyint=120:min-keyint=120:open_gop=0 -force_key_frames expr:gte(t,n_forced*2) -b:v 3500k -maxrate 3500k -bufsize 7000k -c:a aac -profile:a aac_low -b:a 512k -ar 48000 -ac 2 -af aresample=resampler=soxr:osf=s32:dither_method=triangular_hp,asetpts=N/SR/TB -vsync 1 -muxpreload 0 -muxdelay 0 -f flv rtmp://89.117.16.160/live/stream
+root      769641  0.0  0.0   9972  3536 ?        S    11:55   0:00 bash -lc ps aux | egrep -i 'nginx|ffmpeg|python|flask|node|ronaut|stream' || true
+root      769645  0.0  0.0   9236  2352 ?        R    11:55   0:00 grep -E -i nginx|ffmpeg|python|flask|node|ronaut|stream
+LISTEN 0      511          0.0.0.0:1935      0.0.0.0:*    users:(("nginx",pid=538459,fd=6),("nginx",pid=538458,fd=6),("nginx",pid=538457,fd=6),("nginx",pid=538456,fd=6),("nginx",pid=538455,fd=6),("nginx",pid=538454,fd=6),("nginx",pid=530,fd=6))
+LISTEN 0      511          0.0.0.0:80        0.0.0.0:*    users:(("nginx",pid=538459,fd=7),("nginx",pid=538458,fd=7),("nginx",pid=538457,fd=7),("nginx",pid=538456,fd=7),("nginx",pid=538455,fd=7),("nginx",pid=538454,fd=7),("nginx",pid=530,fd=7))
+LISTEN 0      511          0.0.0.0:443       0.0.0.0:*    users:(("nginx",pid=538459,fd=9),("nginx",pid=538458,fd=9),("nginx",pid=538457,fd=9),("nginx",pid=538456,fd=9),("nginx",pid=538455,fd=9),("nginx",pid=538454,fd=9),("nginx",pid=530,fd=9))
+LISTEN 0      511             [::]:80           [::]:*    users:(("nginx",pid=538459,fd=8),("nginx",pid=538458,fd=8),("nginx",pid=538457,fd=8),("nginx",pid=538456,fd=8),("nginx",pid=538455,fd=8),("nginx",pid=538454,fd=8),("nginx",pid=530,fd=8))
+LISTEN 0      511             [::]:443          [::]:*    users:(("nginx",pid=538459,fd=10),("nginx",pid=538458,fd=10),("nginx",pid=538457,fd=10),("nginx",pid=538456,fd=10),("nginx",pid=538455,fd=10),("nginx",pid=538454,fd=10),("nginx",pid=530,fd=10))
+nginx version: nginx/1.18.0 (Ubuntu)
+built with OpenSSL 3.0.2 15 Mar 2022
+TLS SNI support enabled
+configure arguments: --with-cc-opt='-g -O2 -ffile-prefix-map=/build/nginx-niToSo/nginx-1.18.0=. -flto=auto -ffat-lto-objects -flto=auto -ffat-lto-objects -fstack-protector-strong -Wformat -Werror=format-security -fPIC -Wdate-time -D_FORTIFY_SOURCE=2' --with-ld-opt='-Wl,-Bsymbolic-functions -flto=auto -ffat-lto-objects -flto=auto -Wl,-z,relro -Wl,-z,now -fPIC' --prefix=/usr/share/nginx --conf-path=/etc/nginx/nginx.conf --http-log-path=/var/log/nginx/access.log --error-log-path=/var/log/nginx/error.log --lock-path=/var/lock/nginx.lock --pid-path=/run/nginx.pid --modules-path=/usr/lib/nginx/modules --http-client-body-temp-path=/var/lib/nginx/body --http-fastcgi-temp-path=/var/lib/nginx/fastcgi --http-proxy-temp-path=/var/lib/nginx/proxy --http-scgi-temp-path=/var/lib/nginx/scgi --http-uwsgi-temp-path=/var/lib/nginx/uwsgi --with-compat --with-debug --with-pcre-jit --with-http_ssl_module --with-http_stub_status_module --with-http_realip_module --with-http_auth_request_module --with-http_v2_module --with-http_dav_module --with-http_slice_module --with-threads --add-dynamic-module=/build/nginx-niToSo/nginx-1.18.0/debian/modules/http-geoip2 --with-http_addition_module --with-http_gunzip_module --with-http_gzip_static_module --with-http_sub_module
+/usr/sbin/nginx
+/usr/bin/ffmpeg
+/usr/bin/ffprobe
+/usr/bin/node
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+# configuration file /etc/nginx/nginx.conf:
+user www-data;
+worker_processes auto;
+pid /run/nginx.pid;
+include /etc/nginx/modules-enabled/*.conf;
+
+events {
+    worker_connections 768;
+    # multi_accept on;
+}
+
+# --- RTMP BLOCK: FOR STREAM INGEST AND HLS GENERATION ---
+rtmp {
+    server {
+        listen 1935;
+        chunk_size 4096;
+
+        application live {
+            live on;
+            record off; # Keep this off for live streaming unless you want to record
+            allow publish all;
+            allow play all;
+
+            # HLS GENERATION DIRECTIVES
+            hls on;
+            hls_path /var/www/html/hls; # This is where Nginx saves your HLS files
+            hls_fragment 4s; # Duration of each HLS segment (e.g., 3 seconds)
+            hls_playlist_length 60s; # Total duration of the playlist (e.g., 5 fragments * 3s)
+            hls_sync 100ms; # Optional: Helps with live stream synchronization
+            hls_cleanup on;
+
+        }
+    }
+}
+# --- END RTMP BLOCK ---
+
+http {
+    ##
+    # Basic Settings
+    ##
+    sendfile on;
+    tcp_nopush on;
+    types_hash_max_size 2048;
+    # server_tokens off; # Keep this off for security
+    # server_names_hash_bucket_size 64;
+    # server_name_in_redirect off;
+
+    include /etc/nginx/mime.types; # Include MIME types here
+    default_type application/octet-stream;
+
+    ##
+    # SSL Settings (Global for HTTP block, but overridden by server blocks)
+    ##
+    # UPDATED SSL PROTOCOLS AND CIPHERS FOR BETTER COMPATIBILITY AND SECURITY
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_prefer_server_ciphers on;
+
+    ##
+    # Logging Settings
+    ##
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
+
+    ##
+    # Gzip Settings
+    ##
+    gzip on;
+    # gzip_vary on;
+    # gzip_proxied any;
+    # gzip_comp_level 6;
+    # gzip_buffers 16 8k;
+    # gzip_http_version 1.1;
+    # gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+
+    ##
+    # Virtual Host Configs (Include only once inside http block)
+    ##
+    include /etc/nginx/conf.d/*.conf;
+    include /etc/nginx/sites-enabled/*;
+
+    # --- SERVER BLOCK: HTTP to HTTPS Redirect for all domains and IP ---
+    server {
+    if ($host = stream.ronautradio.la) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+        listen 80;
+        listen [::]:80;
+        server_name ronautradio.la www.ronautradio.la stream.ronautradio.la 89.117.16.160; # Listen for both domains and IP
+
+        # Let's Encrypt renewal path
+        location /.well-known/acme-challenge/ {
+            root /var/www/html; # Ensure this root is correct for certbot
+        }
+
+        # Redirect all other HTTP traffic to HTTPS
+        location / {
+            return 301 https://$server_name$request_uri;
+        }
+    
+
+}
+    # --- END HTTP to HTTPS Redirect ---
+
+    # --- SERVER BLOCK: Main HTTPS Server for ronautradio.la and its IP ---
+    server {
+        listen 443 ssl http2;
+        listen [::]:443 ssl http2;
+        server_name stream.ronautradio.la 89.117.16.160; # Listen for both domains and IP
+
+        # Using self-signed certificates as per your previous config.
+        # If you set up Let's Encrypt, replace these with your fullchain.pem and privkey.pem paths.
+    ssl_certificate /etc/letsencrypt/live/stream.ronautradio.la/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/stream.ronautradio.la/privkey.pem; # managed by Certbot
+        
+        # Commented out these lines as they were causing "No such file or directory" error
+        # If you have these files from Certbot, uncomment and ensure paths are correct.
+        # include /etc/letsencrypt/options-ssl-nginx.conf;
+        # ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+        # Default root for static files if needed by this server block
+        root /var/www/html;
+
+        # Location for the main website content (proxied to Node.js)
+        # This assumes your main website is served by Node.js on port 3000
+        location / {
+            proxy_pass http://localhost:3000;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_cache_bypass $http_upgrade;
+            # Add CORS if your Node.js app also needs to serve cross-origin content
+            # add_header Access-Control-Allow-Origin *;
+        }
+
+        # --- PROXY: HLS Stream (matches HTML: https://ronautradio.la/live/hls) ---
+        location /live/hls/ { # Trailing slash is important for alias
+            # Serve files directly from the directory specified in the rtmp block
+            alias /var/www/html/hls/;
+            
+            # Add comprehensive CORS headers for HLS segments
+            add_header Cache-Control no-cache always;
+            add_header Access-Control-Allow-Origin * always;
+            add_header Access-Control-Allow-Methods 'GET, OPTIONS' always;
+            add_header Access-Control-Allow-Headers 'Range,DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type' always;
+            add_header Access-Control-Expose-Headers 'Content-Length,Content-Range' always;
+
+            # Handle OPTIONS preflight requests for HLS
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Max-Age' 1728000;
+                add_header 'Content-Type' 'text/plain; charset=utf-8';
+                add_header 'Content-Length' 0;
+                return 204;
+            }
+
+            # Explicitly define content types for HLS files (can be in mime.types, but explicit here is safer)
+            types {
+                application/vnd.apple.mpegurl m3u8;
+                video/mp2t ts;
+            }
+        }
+        
+        # --- PROXY: "Now Playing" API (matches HTML: https://ronautradio.la/api/now-playing) ---
+        location /api/now-playing {
+            proxy_pass http://127.0.0.1:5050/now-playing; # Proxy to your Flask API
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme; # Important for Flask to see HTTPS
+            proxy_buffering off; # Important for API responses to be immediate
+            
+            # Add comprehensive CORS headers for the API
+                        # Add comprehensive CORS headers for the API with 'always'
+            add_header Access-Control-Allow-Origin * always;
+            add_header Access-Control-Allow-Methods 'GET, OPTIONS' always;
+            add_header Access-Control-Allow-Headers 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type' always;
+            if ($request_method = 'OPTIONS') {
+                add_header 'Access-Control-Max-Age' 1728000;
+                add_header 'Content-Type' 'text/plain; charset=utf-8';
+                add_header 'Content-Length' 0;
+                return 204;
+            }
+        }
+
+        # If stream-test_lp.html is directly served by Nginx (not proxied by Node.js)
+        # and you want to access it via https://ronautradio.la/stream-test_lp.html
+        location /stream-test_lp.html {
+            root /var/www/html;
+            try_files $uri =404;
+            # Add CORS headers if this file itself needs to be accessed cross-origin
+            # add_header Access-Control-Allow-Origin *;
+        }
+    
+}
+    # --- END Main HTTPS Server Block ---
+}
+
+lrwxrwxrwx  1 root     root        4 Jan 20  2021 /var/run -> /run
+
+/root:
+total 71G
+drwx------ 11 root root 4.0K Feb  1 11:55 .
+drwxr-xr-x 18 root root 4.0K Aug 17 10:55 ..
+-rw-r--r--  1 root root 3.7G Jan 24 17:53 Andrea.mp4
+-rw-r--r--  1 root root 3.3G Jul 21  2025 Ayse.mp4
+-rw-r--r--  1 root root 2.6G Jul 23  2025 b2b2b.mp4
+-rw-------  1 root root  93K Jan 27 21:42 .bash_history
+-rw-r--r--  1 root root 3.3K Jul 20  2025 .bashrc
+-rw-r--r--  1 root root 2.7G Jul 21  2025 Blend Brett.mp4
+drwx------  3 root root 4.0K Jul 21  2025 .cache
+-rw-r--r--  1 root root 2.6G Jul 20  2025 caswell.mp4
+-rw-r--r--  1 root root 2.6G Jul 20  2025 caswell.mp4ssh
+drwx------  3 root root 4.0K Aug 17 09:59 .config
+-rw-r--r--  1 root root  13K Aug 15 13:36 debug_run.log
+-rw-r--r--  1 root root  150 Jul 23  2025 debug_stream.log
+-rw-r--r--  1 root root  352 Aug 21 22:55 durations.tsv
+-rw-------  1 root root  276 Jan 25 19:24 durations.txt
+-rw-r--r--  1 root root 4.0G Jul 21  2025 Emami.mp4
+-rw-r--r--  1 root root 2.3G Jul 21  2025 Emir.mp4
+-rw-r--r--  1 root root 3.7G Jul 23  2025 Fede.mp4
+-rw-r--r--  1 root root 1.1M Jul 23  2025 ffmpeg_continuous_stream.log
+-rw-r--r--  1 root root 355M Feb  1 11:55 ffmpeg_random_stream.log
+-rw-r--r--  1 root root  300 Aug 14 21:49 file_durations.csv
+-rw-r--r--  1 root root  205 Aug 21 22:55 files.list
+-rw-r--r--  1 root root 7.8G Oct 27 12:19 Halloween.mp4
+-rwxr-xr-x  1 root root  148 Aug 15 15:40 health_check.sh
+drwxr-xr-x  2 root root 4.0K Aug 17 10:13 hold
+-rw-------  1 root root 2.9K Jan 25 19:24 input.txt
+-rw-r--r--  1 root root  27M Aug 22 05:18 launcher.debug
+-rw-r--r--  1 root root  902 Aug 25 08:09 launcher.out
+-rw-------  1 root root    0 Jan 23 23:19 .lesshsQ
+-rw-------  1 root root   20 Aug 21 22:59 .lesshst
+-rw-r--r--  1 root root  15M Jul 21  2025 livepeer.log
+drwxr-xr-x  3 root root 4.0K Jul 20  2025 .local
+-rw-r--r--  1 root root  15K Aug  8 21:47 nginx_effective.conf
+-rw-r--r--  1 root root  225 Jul 22  2025 now_playing_api.log
+-rw-r--r--  1 root root  399 Jul 23  2025 now_playing_api.py
+-rw-r--r--  1 root root 346K Oct 23 19:22 now_playing.log
+-rw-r--r--  1 root root   11 Aug 21 08:43 now_playing.txt
+drwxr-xr-x  4 root root 4.0K Jul 21  2025 .npm
+-rw-r--r--  1 root root   83 Jul 21  2025 package-lock.json
+-rw-r--r--  1 root root  595 Aug 21 08:43 playback_history.log
+-rw-r--r--  1 root root 1.5K Aug 15 09:05 play_history.log
+-rw-r--r--  1 root root  490 Aug 21 08:43 playlist_state.csv
+-rw-------  1 root root 2.1K Jan 25 19:24 playlist.txt
+drwxr-xr-x  5 root root 4.0K Jul 21  2025 .pm2
+-rw-r--r--  1 root root  161 Dec  5  2019 .profile
+-rw-r--r--  1 root root  116 Aug 20 21:53 repro.log
+-rw-r--r--  1 root root    0 Aug 20 21:54 rollover_pairs.txt
+-rw-r--r--  1 root root 1.3K Aug 21 12:43 rollover_scan.txt
+drwxr-xr-x  3 root root 4.0K Jan 24 17:16 ronaut-radio-app
+-rw-r--r--  1 root root   22 Aug 20 10:48 runner.out
+-rwxr-xr-x  1 root root 2.4K Aug 21 12:43 scan_rollovers.sh
+-rw-r--r--  1 root root   66 Jan 23 22:17 .selected_editor
+drwxr-xr-x  3 root root 4.0K Feb  1 11:55 server_snapshot_20260201_1155
+drwx------  2 root root 4.0K Jul 20  2025 .ssh
+-rwxr-xr-x  1 root root 1.9K Jul 23  2025 start_stream_random.sh
+-rwxr-xr-x  1 root root 1.4K Jul 21  2025 start_stream.sh
+-rw-r--r--  1 root root 355M Feb  1 11:55 start_stream_smart.out
+-rwxr-xr-x  1 root root 7.9K Aug 27 00:19 start_stream_smart.sh
+-rwxr-xr-x  1 root root 6.4K Aug 25 08:21 start_stream_smart.sh.bak.1756197286
+-rwxr-xr-x  1 root root 7.9K Aug 26 01:34 start_stream_smart.sh.bak.1756279035
+-rwxr-xr-x  1 root root 7.9K Aug 27 00:17 start_stream_smart.sh.bak.1756279171
+-rwxr-xr-x  1 root root 7.9K Aug 27 00:19 start_stream_smart.sh.bak.1756279175
+-rw-r--r--  1 root root  67K Dec  4 21:09 streaming.err
+-rw-r--r--  1 root root  16G Jan 23 21:47 streaming.log
+-rw-r--r--  1 root root  84M Aug 17 17:41 stream.log
+-rw-r--r--  1 root root 190M Aug 21 13:11 stream_runner.log
+-rw-r--r--  1 root root  904 Jan 25 19:24 stream_state.tsv
+-rw-r--r--  1 root root   60 Aug 27 00:19 stream_supervisor.out
+-rw-r--r--  1 root root  12G Aug  2  2025 Talmadge-1.mp4
+-rw-r--r--  1 root root   78 Aug 20 21:53 test_input.txt
+-rw-r--r--  1 root root 2.1G Jul 25  2025 Thurs-Night.mp4
+-rw-r--r--  1 root root 108K Jul 20  2025 update.txt
+-rw-r--r--  1 root root  614 Aug 15 13:18 video_scan.csv
+-rw-r--r--  1 root root 6.7G Aug 10 14:17 Weho.mp4
+-rw-r--r--  1 root root  47K Jul 20  2025 wget-log
+-rw-r--r--  1 root root 2.4K Jan 23 22:07 ystemctl list-timers --all | grep -iE "stream|ffmpeg|ronaut|playlist|radio"
+
+/var/www/html:
+total 5.7G
+drwxr-xr-x 3 root     root     4.0K Aug  7 11:54 .
+drwxr-xr-x 3 root     root     4.0K Jul 21  2025 ..
+drwxrwxr-x 2 www-data www-data 304K Feb  1 11:55 hls
+-rw-r--r-- 1 root     root      612 Jul 20  2025 index.nginx-debian.html
+-rw-r--r-- 1 root     root     5.7G Jul 21  2025 loop_clean_hq.mp4
+lrwxrwxrwx 1 root     root       20 Jul 20  2025 loop_clean.mp4 -> /root/loop_clean.mp4
+-rw-r--r-- 1 root     root     1.3K Jul 21  2025 now_playing_api.py
+-rw-r--r-- 1 root     root        0 Jul 21  2025 now_playing.txt
+-rw-r--r-- 1 root     root     1.3K Jul 20  2025 stream-test-backup.html
+-rw-r--r-- 1 root     root     1.3K Jul 20  2025 stream-test.html
+-rw-r--r-- 1 root     root     3.2K Jul 21  2025 stream-test_lp.html
+-rw------- 1 root     root        0 Jul 20  2025 stream-test_lp.html.save
+-rw-r--r-- 1 root     root     3.0K Jul 21  2025 stream-test_lp.html.save.1
+
+/var/www/html/hls:
+total 22M
+drwxrwxr-x 2 www-data www-data 304K Feb  1 11:55 .
+drwxr-xr-x 3 root     root     4.0K Aug  7 11:54 ..
+-rw-r--r-- 1 www-data www-data 1.9M Feb  1 11:52 stream-805463.ts
+-rw-r--r-- 1 www-data www-data 2.1M Feb  1 11:52 stream-805464.ts
+-rw-r--r-- 1 www-data www-data 1.9M Feb  1 11:52 stream-805465.ts
+-rw-r--r-- 1 www-data www-data 2.0M Feb  1 11:53 stream-805466.ts
+-rw-r--r-- 1 www-data www-data 2.0M Feb  1 11:53 stream-805467.ts
+-rw-r--r-- 1 www-data www-data 1.9M Feb  1 11:54 stream-805468.ts
+-rw-r--r-- 1 www-data www-data 2.1M Feb  1 11:54 stream-805469.ts
+-rw-r--r-- 1 www-data www-data 2.0M Feb  1 11:54 stream-805470.ts
+-rw-r--r-- 1 www-data www-data 1.9M Feb  1 11:55 stream-805471.ts
+-rw-r--r-- 1 www-data www-data 2.0M Feb  1 11:55 stream-805472.ts
+-rw-r--r-- 1 www-data www-data 1.5M Feb  1 11:55 stream-805473.ts
+-rw-r--r-- 1 www-data www-data  558 Feb  1 11:55 stream.m3u8
+  File: /var/www/html/hls
+  Size: 311296    	Blocks: 616        IO Block: 4096   directory
+Device: 803h/2051d	Inode: 3408179     Links: 2
+Access: (0775/drwxrwxr-x)  Uid: (   33/www-data)   Gid: (   33/www-data)
+Access: 2026-02-01 11:55:57.358526227 -0800
+Modify: 2026-02-01 11:55:40.910808478 -0800
+Change: 2026-02-01 11:55:40.910808478 -0800
+ Birth: 2025-07-20 17:18:00.564720471 -0700
+  File: /var/run/stream.lock
+  Size: 0         	Blocks: 0          IO Block: 4096   regular empty file
+Device: 1ah/26d	Inode: 918         Links: 1
+Access: (0644/-rw-r--r--)  Uid: (    0/    root)   Gid: (    0/    root)
+Access: 2025-12-21 22:13:09.640000000 -0800
+Modify: 2026-01-25 19:24:02.035902532 -0800
+Change: 2026-01-25 19:24:02.035902532 -0800
+ Birth: -
+/root/ronaut-radio-app
+/root/start_stream_smart.sh
+/root/start_stream_random.sh
+/root/start_stream.sh
+/root/ronaut-radio-app/start_stream_smart.sh
+/root/ronaut-radio-app/start_stream.sh
+/root/now_playing_api.py
+/root/now_playing_api.log
+/root/ronaut-radio-app/now_playing_api.py
+/root/ronaut-radio-app/now_playing.txt
+/root/now_playing.log
+/root/now_playing.txt

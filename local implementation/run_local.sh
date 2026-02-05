@@ -15,6 +15,8 @@ CONF_RENDERED="${RUN_DIR}/nginx_local.conf"
 : "${CLIP_SECONDS:=30}"
 : "${START_OFFSET:=0}"
 : "${NOW_PLAYING_FILE:=${RUN_DIR}/now_playing.txt}"
+: "${STREAM_MODE_FILE:=${RUN_DIR}/STREAM_MODE}"
+: "${STREAM_MODE:=recorded}"
 : "${FFMPEG_BIN:=/Users/andreabenedetti/opt/anaconda3/envs/ronaut-ffmpeg/bin/ffmpeg}"
 : "${FFPROBE_BIN:=/Users/andreabenedetti/opt/anaconda3/envs/ronaut-ffmpeg/bin/ffprobe}"
 : "${LOCK_FILE:=${RUN_DIR}/stream.lock}"
@@ -92,6 +94,7 @@ start_nginx() {
   docker_cmd="${DOCKER_BIN} run -d --name ${DOCKER_CONTAINER} \
     -p ${RTMP_PORT}:1935 -p ${HTTP_PORT}:8080 \
     -v \"${HLS_DIR}:${NGINX_CONTAINER_HLS_PATH}\" \
+    -v \"${BASE_DIR}:/opt/local:ro\" \
     -v \"${CONF_RENDERED}:/tmp/nginx.conf:ro\" \
     ${DOCKER_IMAGE} \
     nginx -g \"daemon off;\" -c /tmp/nginx.conf"
@@ -120,7 +123,8 @@ start_api() {
 start_streamer() {
   MOVIES_DIR="$MOVIES_DIR" RTMP_PORT="$RTMP_PORT" \
     CLIP_SECONDS="$CLIP_SECONDS" START_OFFSET="$START_OFFSET" \
-    NOW_PLAYING_FILE="$NOW_PLAYING_FILE" LOCK_FILE="$LOCK_FILE" \
+    NOW_PLAYING_FILE="$NOW_PLAYING_FILE" STREAM_MODE_FILE="$STREAM_MODE_FILE" \
+    LOCK_FILE="$LOCK_FILE" \
     FFMPEG_BIN="$FFMPEG_BIN" FFPROBE_BIN="$FFPROBE_BIN" \
     nohup "${BASE_DIR}/start_stream_local_smart.sh" >> "${LOG_DIR}/ffmpeg.log" 2>&1 &
   echo $! > "${RUN_DIR}/streamer.pid"
@@ -128,7 +132,7 @@ start_streamer() {
 
 print_urls() {
   echo "Local stack running:"
-  echo "  HLS: http://localhost:${HTTP_PORT}/hls/stream.m3u8"
+  echo "  HLS: http://localhost:${HTTP_PORT}/live/hls/stream.m3u8"
   echo "  API: http://localhost:${API_PORT}/now-playing"
   echo "  RTMP: rtmp://localhost:${RTMP_PORT}/live/stream"
 }
@@ -144,6 +148,9 @@ case "${1:-run}" in
     find_docker
     check_deps
     : > "$NOW_PLAYING_FILE"
+    if [[ ! -f "$STREAM_MODE_FILE" ]]; then
+      echo "$STREAM_MODE" > "$STREAM_MODE_FILE"
+    fi
     render_nginx_conf
     start_nginx
     start_api

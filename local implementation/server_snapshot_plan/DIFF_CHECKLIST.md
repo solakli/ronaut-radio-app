@@ -17,3 +17,11 @@ Can Differ Safely
 - Domain names / DNS
 - Absolute base paths (`/root` vs repo-relative paths)
 - Service managers (systemd on server vs scripts locally)
+
+Current Server Values (Snapshot)
+--------------------------------
+- RTMP app: `live`
+- HLS params: `hls_fragment 4s`, `hls_playlist_length 60s`, `hls_cleanup on`
+- HLS path: `/var/www/html/hls` (served at `/live/hls/`)
+- API: `/api/now-playing` -> Flask `/now-playing`
+- FFmpeg: 60fps, GOP 120, 3500k/7000k video, AAC-LC 512k @ 48kHz

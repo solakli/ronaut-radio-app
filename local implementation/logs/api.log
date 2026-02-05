@@ -31,3 +31,63 @@ Port 5050 is in use by another program. Either identify and stop that program, o
 [33mPress CTRL+C to quit[0m
 127.0.0.1 - - [27/Jan/2026 21:05:17] "GET /now-playing HTTP/1.1" 200 -
 127.0.0.1 - - [27/Jan/2026 21:05:17] "GET /now-playing HTTP/1.1" 200 -
+ * Serving Flask app 'now_playing_api'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5050
+ * Running on http://192.168.1.103:5050
+[33mPress CTRL+C to quit[0m
+127.0.0.1 - - [01/Feb/2026 12:00:36] "GET /now-playing HTTP/1.1" 200 -
+127.0.0.1 - - [01/Feb/2026 12:00:37] "GET /now-playing HTTP/1.1" 200 -
+ * Serving Flask app 'now_playing_api'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5050
+ * Running on http://192.168.1.103:5050
+[33mPress CTRL+C to quit[0m
+ * Serving Flask app 'now_playing_api'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5050
+ * Running on http://192.168.1.103:5050
+[33mPress CTRL+C to quit[0m
+ * Serving Flask app 'now_playing_api'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5050
+ * Running on http://192.168.1.103:5050
+[33mPress CTRL+C to quit[0m
+ * Serving Flask app 'now_playing_api'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5050
+ * Running on http://192.168.1.103:5050
+[33mPress CTRL+C to quit[0m
+ * Serving Flask app 'now_playing_api'
+ * Debug mode: off
+Address already in use
+Port 5050 is in use by another program. Either identify and stop that program, or start the server with a different port.
+ * Serving Flask app 'now_playing_api'
+ * Debug mode: off
+Address already in use
+Port 5050 is in use by another program. Either identify and stop that program, or start the server with a different port.
+ * Serving Flask app 'now_playing_api'
+ * Debug mode: off
+Address already in use
+Port 5050 is in use by another program. Either identify and stop that program, or start the server with a different port.
+ * Serving Flask app 'now_playing_api'
+ * Debug mode: off
+Address already in use
+Port 5050 is in use by another program. Either identify and stop that program, or start the server with a different port.
+127.0.0.1 - - [01/Feb/2026 12:41:33] "GET /now-playing HTTP/1.1" 200 -
+127.0.0.1 - - [01/Feb/2026 12:41:43] "GET /now-playing HTTP/1.1" 200 -
+127.0.0.1 - - [01/Feb/2026 12:41:53] "GET /now-playing HTTP/1.1" 200 -
+ * Serving Flask app 'now_playing_api'
+ * Debug mode: off
+Address already in use
+Port 5050 is in use by another program. Either identify and stop that program, or start the server with a different port.
