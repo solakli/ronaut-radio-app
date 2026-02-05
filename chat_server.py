@@ -117,4 +117,4 @@ def handle_message(data):
 
 if __name__ == "__main__":
     get_db()  # Ensure table exists
-    socketio.run(app, host="0.0.0.0", port=5051)
+    socketio.run(app, host="0.0.0.0", port=5051, allow_unsafe_werkzeug=True)
