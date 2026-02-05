@@ -51,8 +51,8 @@ def sign_request(string_to_sign: str, access_secret: str) -> str:
 
 
 def extract_chunk_raw(mp4_path: str, start_time: int, duration: int, output_path: str) -> bool:
-    """Extract raw audio chunk for Shazam (44100Hz mono PCM, smaller for API limit)."""
-    # Shazam API has ~500KB limit, so 5s at 44100Hz mono 16-bit is ~440KB
+    """Extract audio chunk for Shazam as base64-friendly format."""
+    # Use MP3 for Shazam - 5 seconds at 128kbps = ~80KB
     cmd = [
         "ffmpeg",
         "-y",
@@ -60,10 +60,10 @@ def extract_chunk_raw(mp4_path: str, start_time: int, duration: int, output_path
         "-i", mp4_path,
         "-t", str(duration),
         "-vn",
-        "-acodec", "pcm_s16le",
+        "-acodec", "libmp3lame",
         "-ar", "44100",
         "-ac", "1",
-        "-f", "s16le",  # Raw PCM, no WAV header (smaller)
+        "-b:a", "128k",
         output_path,
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -274,7 +274,7 @@ def process_set(mp4_path: str, output_json: str = None) -> list:
         for i, start_time in enumerate(chunk_times):
             # Use different formats for each API
             if USE_SHAZAM:
-                chunk_path = os.path.join(tmpdir, f"chunk_{i:04d}.raw")
+                chunk_path = os.path.join(tmpdir, f"chunk_{i:04d}.mp3")
                 extract_ok = extract_chunk_raw(mp4_path, start_time, chunk_dur, chunk_path)
             else:
                 chunk_path = os.path.join(tmpdir, f"chunk_{i:04d}.mp3")
