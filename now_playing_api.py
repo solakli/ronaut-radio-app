@@ -16,6 +16,7 @@ PLAYLIST_FILE = "/root/playlist.txt"
 DURATIONS_FILE = "/root/durations.txt"
 HLS_M3U8 = "/var/www/html/hls/stream.m3u8"
 LIVE_MODE_FLAG = "/root/.live_mode"
+STAFF_PICKS_FILE = "/root/staff_picks.json"
 
 HEARTBEAT_STALE_SECONDS = 20
 HLS_STALE_SECONDS = 15
@@ -259,6 +260,28 @@ def stop_live():
         pass
 
     return jsonify(status="ok", mode="offline")
+
+
+@app.route("/sets")
+def sets():
+    try:
+        with open(STAFF_PICKS_FILE, "r") as f:
+            picks = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return jsonify(sets=[])
+
+    result = []
+    for pick in picks:
+        fname = pick.get("filename", "")
+        name = fname.replace(".mp4", "") if fname.endswith(".mp4") else fname
+        result.append({
+            "filename": fname,
+            "title": pick.get("title", name),
+            "description": pick.get("description", ""),
+            "thumbnail": "/sets/thumbs/{}.jpg".format(name),
+            "url": "/sets/{}".format(fname),
+        })
+    return jsonify(sets=result)
 
 
 if __name__ == "__main__":
