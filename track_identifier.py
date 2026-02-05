@@ -51,8 +51,7 @@ def sign_request(string_to_sign: str, access_secret: str) -> str:
 
 
 def extract_chunk_raw(mp4_path: str, start_time: int, duration: int, output_path: str) -> bool:
-    """Extract audio chunk for Shazam as base64-friendly format."""
-    # Use MP3 for Shazam - 5 seconds at 128kbps = ~80KB
+    """Extract raw PCM audio chunk for Shazam (44100Hz mono 16-bit)."""
     cmd = [
         "ffmpeg",
         "-y",
@@ -60,10 +59,10 @@ def extract_chunk_raw(mp4_path: str, start_time: int, duration: int, output_path
         "-i", mp4_path,
         "-t", str(duration),
         "-vn",
-        "-acodec", "libmp3lame",
+        "-acodec", "pcm_s16le",
         "-ar", "44100",
         "-ac", "1",
-        "-b:a", "128k",
+        "-f", "s16le",  # Raw PCM, no header
         output_path,
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -97,37 +96,61 @@ def identify_chunk_shazam(audio_path: str) -> dict:
 
 
 def parse_shazam_result(result: dict) -> dict | None:
-    """Parse Shazam response into a simplified track dict."""
+    """Parse Shazam v3 response into a simplified track dict."""
     if "error" in result:
         return None
 
-    track = result.get("track")
-    if not track:
+    # Check for matches in the v3 API response format
+    matches = result.get("results", {}).get("matches", [])
+    if not matches:
         return None
 
-    # Extract artist names
-    artists = []
-    if track.get("subtitle"):
-        artists = [track["subtitle"]]
+    # Get the first match ID
+    shazam_id = matches[0].get("id", "")
 
-    # Get Shazam key as unique ID
-    shazam_key = track.get("key", "")
+    # Extract info from resources
+    resources = result.get("resources", {})
+    albums = resources.get("albums", {})
+    artists_data = resources.get("artists", {})
+
+    # Get album info (contains artist name and album name)
+    album_info = {}
+    for album in albums.values():
+        attrs = album.get("attributes", {})
+        if attrs:
+            album_info = attrs
+            break
+
+    # Get artist info
+    artist_name = ""
+    for artist in artists_data.values():
+        attrs = artist.get("attributes", {})
+        if attrs.get("name"):
+            artist_name = attrs["name"]
+            break
+
+    # The album's artistName often has the full artist list
+    full_artist = album_info.get("artistName", artist_name)
+    album_name = album_info.get("name", "").replace(" - Single", "")  # Clean up single suffix
+    release_date = album_info.get("releaseDate", "")
+
+    if not full_artist and not album_name:
+        return None
 
     return {
-        "acrid": f"shazam_{shazam_key}",  # Use shazam_ prefix for Shazam IDs
-        "title": track.get("title", "Unknown"),
-        "artists": artists,
-        "album": track.get("sections", [{}])[0].get("metadata", [{}])[0].get("text", "") if track.get("sections") else "",
+        "acrid": f"shazam_{shazam_id}",
+        "title": album_name,
+        "artists": [full_artist] if full_artist else [],
+        "album": album_name,
         "label": "",
-        "release_date": "",
+        "release_date": release_date,
         "duration_ms": 0,
-        "score": 100,  # Shazam doesn't give confidence, assume high if matched
+        "score": 100,  # Shazam match = high confidence
         "play_offset_ms": 0,
         "spotify_id": None,
         "deezer_id": None,
         "external_ids": {},
-        "shazam_key": shazam_key,
-        "shazam_url": track.get("url", ""),
+        "shazam_id": shazam_id,
     }
 
 
@@ -274,7 +297,7 @@ def process_set(mp4_path: str, output_json: str = None) -> list:
         for i, start_time in enumerate(chunk_times):
             # Use different formats for each API
             if USE_SHAZAM:
-                chunk_path = os.path.join(tmpdir, f"chunk_{i:04d}.mp3")
+                chunk_path = os.path.join(tmpdir, f"chunk_{i:04d}.raw")
                 extract_ok = extract_chunk_raw(mp4_path, start_time, chunk_dur, chunk_path)
             else:
                 chunk_path = os.path.join(tmpdir, f"chunk_{i:04d}.mp3")
