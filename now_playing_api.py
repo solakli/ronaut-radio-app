@@ -268,13 +268,97 @@ def go_live():
 
 @app.route("/stop-live", methods=["POST"])
 def stop_live():
-    # Remove live mode flag — supervisor will auto-restart ffmpeg
+    # Remove live mode flag
     try:
         os.remove(LIVE_MODE_FLAG)
     except OSError:
         pass
 
-    return jsonify(status="ok", mode="offline")
+    # Restart the automated stream
+    _restart_auto_stream()
+
+    return jsonify(status="ok", mode="auto")
+
+
+def _restart_auto_stream():
+    """Restart the automated ffmpeg streaming script."""
+    try:
+        # Kill any existing stream first
+        subprocess.run(["pkill", "-f", "start_stream"], timeout=5, check=False)
+        time.sleep(1)
+        # Start the stream in background
+        subprocess.Popen(
+            ["nohup", "/root/start_stream_smart.sh"],
+            stdout=open("/root/stream.log", "a"),
+            stderr=subprocess.STDOUT,
+            stdin=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except Exception as e:
+        print(f"Error restarting stream: {e}")
+
+
+# --- RTMP Callbacks (called by nginx when OBS connects/disconnects) ---
+
+@app.route("/rtmp-publish", methods=["POST"])
+def rtmp_publish():
+    """
+    Called by nginx when someone starts streaming to RTMP.
+    This triggers when OBS connects - automatically go live.
+    """
+    # Get stream info from nginx
+    stream_name = request.form.get("name", "unknown")
+    client_addr = request.form.get("addr", "unknown")
+
+    print(f"RTMP publish: stream={stream_name} from {client_addr}")
+
+    # Check if this is OBS (external) or our ffmpeg (internal)
+    # Our ffmpeg streams from localhost, OBS streams from external IP
+    if client_addr.startswith("127.") or client_addr == "localhost":
+        # This is our automated ffmpeg, allow it
+        return "OK", 200
+
+    # External connection (OBS) - go live!
+    with open(LIVE_MODE_FLAG, "w") as f:
+        f.write(str(int(time.time())))
+
+    # Kill the automated ffmpeg stream
+    try:
+        subprocess.run(["pkill", "-f", "ffmpeg.*concat"], timeout=5, check=False)
+    except Exception:
+        pass
+
+    print("OBS connected - went live!")
+    return "OK", 200
+
+
+@app.route("/rtmp-done", methods=["POST"])
+def rtmp_done():
+    """
+    Called by nginx when someone stops streaming to RTMP.
+    This triggers when OBS disconnects - automatically resume auto stream.
+    """
+    stream_name = request.form.get("name", "unknown")
+    client_addr = request.form.get("addr", "unknown")
+
+    print(f"RTMP done: stream={stream_name} from {client_addr}")
+
+    # Only act if this was an external stream (OBS)
+    if client_addr.startswith("127.") or client_addr == "localhost":
+        # Our ffmpeg stopped, probably killed - don't restart yet
+        return "OK", 200
+
+    # OBS disconnected - remove live mode and restart auto stream
+    try:
+        os.remove(LIVE_MODE_FLAG)
+    except OSError:
+        pass
+
+    # Restart automated stream
+    _restart_auto_stream()
+
+    print("OBS disconnected - restarting auto stream!")
+    return "OK", 200
 
 
 @app.route("/sets")
