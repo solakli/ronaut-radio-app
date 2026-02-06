@@ -6,7 +6,7 @@ exec 9>/var/run/stream.lock
 flock -n 9 || { echo "Another streamer is running. Exiting."; exit 0; }
 
 # ---------- Defaults & Preflight (one-command startup) ----------
-: "${RTMP_URL:=rtmp://89.117.16.160/live/stream}"
+: "${RTMP_URL:=rtmp://127.0.0.1/live/stream}"
 : "${INPUT_CONCAT_FILE:=/root/input.txt}"
 : "${PLAYLIST_FILE:=/root/playlist.txt}"
 : "${DURATIONS_FILE:=/root/durations.txt}"
