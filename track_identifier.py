@@ -476,6 +476,7 @@ def apply_confidence_filter(raw_matches: list) -> list:
     1. Minimum confidence score
     2. Consecutive match requirement (identifies song start AND end)
     3. Track end detection via match gaps or new track detection
+    4. Deduplication - each track appears only once (first occurrence)
     """
     if not raw_matches:
         return []
@@ -485,6 +486,9 @@ def apply_confidence_filter(raw_matches: list) -> list:
         m for m in raw_matches
         if m["track"]["score"] >= MIN_CONFIDENCE
     ]
+
+    # Track already-added songs to avoid duplicates
+    seen_acrids = set()
 
     # Group consecutive matches by acrid to find song boundaries
     tracklist = []
@@ -504,8 +508,8 @@ def apply_confidence_filter(raw_matches: list) -> list:
                 last_seen_time = match_time
             else:
                 # Gap too large - this is probably a different occurrence
-                # Save current track first if valid
-                if consecutive_count >= MIN_CONSECUTIVE:
+                # Save current track first if valid AND not already seen
+                if consecutive_count >= MIN_CONSECUTIVE and current_track["acrid"] not in seen_acrids:
                     end_time = last_seen_time + CHUNK_INTERVAL
                     tracklist.append({
                         "start_time": first_seen_time,
@@ -522,13 +526,14 @@ def apply_confidence_filter(raw_matches: list) -> list:
                         "consecutive_matches": consecutive_count,
                         "confidence": "high" if consecutive_count >= 3 else "medium",
                     })
+                    seen_acrids.add(current_track["acrid"])
                 # Start fresh occurrence of same track
                 first_seen_time = match_time
                 last_seen_time = match_time
                 consecutive_count = 1
         else:
-            # Different track - save previous if valid
-            if current_track and consecutive_count >= MIN_CONSECUTIVE:
+            # Different track - save previous if valid AND not already seen
+            if current_track and consecutive_count >= MIN_CONSECUTIVE and current_track["acrid"] not in seen_acrids:
                 end_time = last_seen_time + CHUNK_INTERVAL
                 tracklist.append({
                     "start_time": first_seen_time,
@@ -545,6 +550,7 @@ def apply_confidence_filter(raw_matches: list) -> list:
                     "consecutive_matches": consecutive_count,
                     "confidence": "high" if consecutive_count >= 3 else "medium",
                 })
+                seen_acrids.add(current_track["acrid"])
 
             # Start tracking new track
             current_track = match["track"]
@@ -552,8 +558,8 @@ def apply_confidence_filter(raw_matches: list) -> list:
             first_seen_time = match_time
             last_seen_time = match_time
 
-    # Don't forget the last track
-    if current_track and consecutive_count >= MIN_CONSECUTIVE:
+    # Don't forget the last track (if not already seen)
+    if current_track and consecutive_count >= MIN_CONSECUTIVE and current_track["acrid"] not in seen_acrids:
         end_time = last_seen_time + CHUNK_INTERVAL
         tracklist.append({
             "start_time": first_seen_time,
