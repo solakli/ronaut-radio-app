@@ -317,5 +317,88 @@ def sets():
     return jsonify(sets=result)
 
 
+# --- Track ID Submissions ---
+TRACK_ID_DB = "/root/track_submissions.db"
+
+
+def _get_submissions_db():
+    """Get or create the track ID submissions database."""
+    import sqlite3
+    conn = sqlite3.connect(TRACK_ID_DB)
+    conn.execute("""CREATE TABLE IF NOT EXISTS submissions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        set_name TEXT NOT NULL,
+        start_time INTEGER NOT NULL,
+        artist TEXT NOT NULL,
+        title TEXT NOT NULL,
+        submitted_by TEXT,
+        timestamp REAL NOT NULL,
+        approved INTEGER DEFAULT 0
+    )""")
+    conn.commit()
+    return conn
+
+
+@app.route("/submit-id", methods=["POST"])
+def submit_id():
+    """Submit a track identification suggestion."""
+    data = request.get_json() or {}
+
+    set_name = (data.get("set_name") or "").strip()
+    start_time = data.get("start_time", 0)
+    artist = (data.get("artist") or "").strip()[:100]
+    title = (data.get("title") or "").strip()[:200]
+    submitted_by = (data.get("submitted_by") or "Anonymous").strip()[:50]
+
+    if not set_name or not artist or not title:
+        return jsonify(error="Missing required fields"), 400
+
+    try:
+        conn = _get_submissions_db()
+        conn.execute(
+            "INSERT INTO submissions (set_name, start_time, artist, title, submitted_by, timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+            (set_name, start_time, artist, title, submitted_by, time.time())
+        )
+        conn.commit()
+        conn.close()
+        return jsonify(status="ok", message="Thanks for helping identify this track!")
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+
+
+@app.route("/submissions")
+def get_submissions():
+    """Get pending track ID submissions (for review)."""
+    set_name = request.args.get("set")
+
+    try:
+        conn = _get_submissions_db()
+        if set_name:
+            rows = conn.execute(
+                "SELECT id, set_name, start_time, artist, title, submitted_by, timestamp, approved FROM submissions WHERE set_name = ? ORDER BY start_time",
+                (set_name,)
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT id, set_name, start_time, artist, title, submitted_by, timestamp, approved FROM submissions ORDER BY timestamp DESC LIMIT 100"
+            ).fetchall()
+        conn.close()
+
+        submissions = [{
+            "id": r[0],
+            "set_name": r[1],
+            "start_time": r[2],
+            "artist": r[3],
+            "title": r[4],
+            "submitted_by": r[5],
+            "timestamp": r[6],
+            "approved": bool(r[7]),
+        } for r in rows]
+
+        return jsonify(submissions=submissions)
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5050)
