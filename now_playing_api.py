@@ -293,11 +293,13 @@ def sets():
         # Load tracklist if available
         tracklist_path = "/root/tracklists/{}_tracklist.json".format(name)
         tracklist = []
+        unidentified = []
         genres = []
         try:
             with open(tracklist_path, "r") as f:
                 tl_data = json.load(f)
                 tracklist = tl_data.get("tracklist", [])
+                unidentified = tl_data.get("unidentified", [])
                 genres = tl_data.get("genres", [])
         except (OSError, json.JSONDecodeError):
             pass
@@ -310,6 +312,7 @@ def sets():
             "url": "/sets/{}".format(fname),
             "genres": genres,
             "tracklist": tracklist,
+            "unidentified": unidentified,
         })
     return jsonify(sets=result)
 

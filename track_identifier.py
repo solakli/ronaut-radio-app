@@ -354,6 +354,9 @@ def process_set(mp4_path: str, output_json: str = None) -> list:
     genre_counts = Counter(all_genres)
     top_genres = [g for g, _ in genre_counts.most_common(5)]  # Top 5 genres
 
+    # Build unidentified tracks list (gaps between identified tracks)
+    unidentified = build_unidentified_tracks(tracklist, raw_matches, duration, CHUNK_INTERVAL)
+
     # Save results
     output = {
         "set_name": set_name,
@@ -371,6 +374,7 @@ def process_set(mp4_path: str, output_json: str = None) -> list:
         },
         "raw_matches": raw_matches,
         "tracklist": tracklist,
+        "unidentified": unidentified,
     }
 
     with open(output_json, "w") as f:
@@ -382,12 +386,96 @@ def process_set(mp4_path: str, output_json: str = None) -> list:
     return tracklist
 
 
+def build_unidentified_tracks(tracklist: list, raw_matches: list, duration: int, interval: int) -> list:
+    """
+    Build list of unidentified sections for crowd-sourcing.
+    Shows time ranges where songs weren't identified, with estimated track count.
+    Typical DJ set track: 4-6 minutes average.
+    """
+    if duration <= 0:
+        return []
+
+    AVG_TRACK_LENGTH = 300  # 5 minutes - typical DJ set track length
+    MIN_GAP_TO_REPORT = 120  # Only report gaps > 2 minutes
+
+    # Get identified track time ranges from actual start/end times
+    identified_ranges = []
+    for t in tracklist:
+        start = t["start_time"]
+        end = t.get("end_time", start + AVG_TRACK_LENGTH)  # Use actual end_time if available
+        identified_ranges.append((start, end))
+
+    # Sort and merge overlapping ranges
+    identified_ranges.sort()
+    merged = []
+    for start, end in identified_ranges:
+        if merged and start <= merged[-1][1] + 60:  # Allow 60s gap for transitions
+            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+        else:
+            merged.append((start, end))
+
+    # Find gaps between identified tracks
+    unidentified = []
+    prev_end = 0
+
+    for start, end in merged:
+        gap_duration = start - prev_end
+        if gap_duration > MIN_GAP_TO_REPORT:
+            # Estimate number of tracks in this gap
+            estimated_tracks = max(1, round(gap_duration / AVG_TRACK_LENGTH))
+            unidentified.append({
+                "start_time": prev_end,
+                "end_time": start,
+                "start_time_formatted": f"{prev_end//60}:{prev_end%60:02d}",
+                "end_time_formatted": f"{start//60}:{start%60:02d}",
+                "duration_seconds": gap_duration,
+                "estimated_tracks": estimated_tracks,
+                "title": f"~{estimated_tracks} unidentified track{'s' if estimated_tracks > 1 else ''}",
+                "artists": ["Help ID"],
+                "needs_id": True,
+            })
+        prev_end = end
+
+    # Gap after last identified track
+    if prev_end < duration - MIN_GAP_TO_REPORT:
+        gap_duration = duration - prev_end
+        estimated_tracks = max(1, round(gap_duration / AVG_TRACK_LENGTH))
+        unidentified.append({
+            "start_time": prev_end,
+            "end_time": duration,
+            "start_time_formatted": f"{prev_end//60}:{prev_end%60:02d}",
+            "end_time_formatted": f"{duration//60}:{duration%60:02d}",
+            "duration_seconds": gap_duration,
+            "estimated_tracks": estimated_tracks,
+            "title": f"~{estimated_tracks} unidentified track{'s' if estimated_tracks > 1 else ''}",
+            "artists": ["Help ID"],
+            "needs_id": True,
+        })
+
+    # If no tracks identified at all, show entire set as unidentified
+    if not tracklist:
+        estimated_tracks = max(1, round(duration / AVG_TRACK_LENGTH))
+        return [{
+            "start_time": 0,
+            "end_time": duration,
+            "start_time_formatted": "0:00",
+            "end_time_formatted": f"{duration//60}:{duration%60:02d}",
+            "duration_seconds": duration,
+            "estimated_tracks": estimated_tracks,
+            "title": f"~{estimated_tracks} unidentified tracks (full set)",
+            "artists": ["Help ID"],
+            "needs_id": True,
+        }]
+
+    return unidentified
+
+
 def apply_confidence_filter(raw_matches: list) -> list:
     """
-    Filter raw ACRCloud matches using:
+    Filter raw matches using:
     1. Minimum confidence score
-    2. Consecutive match requirement
-    3. Popularity cap (TODO: requires external API)
+    2. Consecutive match requirement (identifies song start AND end)
+    3. Track end detection via match gaps or new track detection
     """
     if not raw_matches:
         return []
@@ -398,23 +486,56 @@ def apply_confidence_filter(raw_matches: list) -> list:
         if m["track"]["score"] >= MIN_CONFIDENCE
     ]
 
-    # Group consecutive matches by acrid
+    # Group consecutive matches by acrid to find song boundaries
     tracklist = []
     current_track = None
     consecutive_count = 0
     first_seen_time = 0
+    last_seen_time = 0
 
     for match in confident_matches:
         acrid = match["track"]["acrid"]
+        match_time = match["start_time"]
 
         if current_track and current_track["acrid"] == acrid:
-            consecutive_count += 1
+            # Same track - check if it's truly consecutive (within ~60s gap)
+            if match_time - last_seen_time <= 60:
+                consecutive_count += 1
+                last_seen_time = match_time
+            else:
+                # Gap too large - this is probably a different occurrence
+                # Save current track first if valid
+                if consecutive_count >= MIN_CONSECUTIVE:
+                    end_time = last_seen_time + CHUNK_INTERVAL
+                    tracklist.append({
+                        "start_time": first_seen_time,
+                        "end_time": end_time,
+                        "start_time_formatted": f"{first_seen_time//60}:{first_seen_time%60:02d}",
+                        "end_time_formatted": f"{end_time//60}:{end_time%60:02d}",
+                        "duration_seconds": end_time - first_seen_time,
+                        "acrid": current_track["acrid"],
+                        "title": current_track["title"],
+                        "artists": current_track["artists"],
+                        "album": current_track["album"],
+                        "label": current_track["label"],
+                        "genres": current_track.get("genres", []),
+                        "consecutive_matches": consecutive_count,
+                        "confidence": "high" if consecutive_count >= 3 else "medium",
+                    })
+                # Start fresh occurrence of same track
+                first_seen_time = match_time
+                last_seen_time = match_time
+                consecutive_count = 1
         else:
-            # Save previous track if it had enough consecutive matches
+            # Different track - save previous if valid
             if current_track and consecutive_count >= MIN_CONSECUTIVE:
+                end_time = last_seen_time + CHUNK_INTERVAL
                 tracklist.append({
                     "start_time": first_seen_time,
+                    "end_time": end_time,
                     "start_time_formatted": f"{first_seen_time//60}:{first_seen_time%60:02d}",
+                    "end_time_formatted": f"{end_time//60}:{end_time%60:02d}",
+                    "duration_seconds": end_time - first_seen_time,
                     "acrid": current_track["acrid"],
                     "title": current_track["title"],
                     "artists": current_track["artists"],
@@ -428,13 +549,18 @@ def apply_confidence_filter(raw_matches: list) -> list:
             # Start tracking new track
             current_track = match["track"]
             consecutive_count = 1
-            first_seen_time = match["start_time"]
+            first_seen_time = match_time
+            last_seen_time = match_time
 
     # Don't forget the last track
     if current_track and consecutive_count >= MIN_CONSECUTIVE:
+        end_time = last_seen_time + CHUNK_INTERVAL
         tracklist.append({
             "start_time": first_seen_time,
+            "end_time": end_time,
             "start_time_formatted": f"{first_seen_time//60}:{first_seen_time%60:02d}",
+            "end_time_formatted": f"{end_time//60}:{end_time%60:02d}",
+            "duration_seconds": end_time - first_seen_time,
             "acrid": current_track["acrid"],
             "title": current_track["title"],
             "artists": current_track["artists"],
