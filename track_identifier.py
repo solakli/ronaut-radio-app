@@ -581,7 +581,7 @@ def apply_confidence_filter(raw_matches: list) -> list:
 
 
 def main():
-    global USE_SHAZAM
+    global USE_SHAZAM, MIN_CONSECUTIVE
 
     # Parse arguments
     args = sys.argv[1:]
@@ -595,14 +595,20 @@ def main():
         args.remove("--shazam")
     # Default is Shazam (USE_SHAZAM = True)
 
+    # Check for loose matching (MIN_CONSECUTIVE=1)
+    if "--loose" in args:
+        MIN_CONSECUTIVE = 1
+        args.remove("--loose")
+
     if len(args) < 1:
-        print("Usage: python track_identifier.py [--shazam|--acr] <mp4_file> [output.json]")
+        print("Usage: python track_identifier.py [--shazam|--acr] [--loose] <mp4_file> [output.json]")
         print("\nOptions:")
         print("  --shazam  Use Shazam API (default, larger database)")
         print("  --acr     Use ACRCloud API")
+        print("  --loose   Lower confidence threshold (1 match instead of 2)")
         print("\nExample:")
         print("  python track_identifier.py /root/Andrea.mp4")
-        print("  python track_identifier.py --acr /root/Andrea.mp4 andrea_tracks.json")
+        print("  python track_identifier.py --loose /root/Andrea.mp4")
         sys.exit(1)
 
     mp4_path = args[0]
