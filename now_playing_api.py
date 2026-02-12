@@ -17,6 +17,7 @@ DURATIONS_FILE = "/root/durations.txt"
 HLS_M3U8 = "/var/www/html/hls/stream.m3u8"
 LIVE_MODE_FLAG = "/root/.live_mode"
 STAFF_PICKS_FILE = "/root/staff_picks.json"
+RESIDENTS_FILE = "/root/residents.json"
 
 HEARTBEAT_STALE_SECONDS = 20
 HLS_STALE_SECONDS = 15
@@ -399,6 +400,27 @@ def sets():
             "unidentified": unidentified,
         })
     return jsonify(sets=result)
+
+
+# --- Residents ---
+@app.route("/residents")
+def residents():
+    """Return list of featured residents."""
+    try:
+        with open(RESIDENTS_FILE, "r") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return jsonify(residents=[])
+
+    result = []
+    for resident in data:
+        result.append({
+            "name": resident.get("name", ""),
+            "bio": resident.get("bio", ""),
+            "photo": "/residents/{}".format(resident.get("photo", "")),
+            "social": resident.get("social", {}),
+        })
+    return jsonify(residents=result)
 
 
 # --- Track ID Submissions ---

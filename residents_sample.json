@@ -1,0 +1,19 @@
+[
+  {
+    "name": "DJ Name",
+    "bio": "Short bio about the resident DJ. Their style, background, and what they bring to Ronaut Radio.",
+    "photo": "dj-name.jpg",
+    "social": {
+      "instagram": "https://instagram.com/djname",
+      "soundcloud": "https://soundcloud.com/djname"
+    }
+  },
+  {
+    "name": "Another Resident",
+    "bio": "Another resident's bio goes here. Keep it concise - 1-2 sentences.",
+    "photo": "another-resident.jpg",
+    "social": {
+      "instagram": "https://instagram.com/another"
+    }
+  }
+]
