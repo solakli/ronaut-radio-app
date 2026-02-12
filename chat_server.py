@@ -43,6 +43,12 @@ def name_to_color(name):
     return "#{:02x}{:02x}{:02x}".format(r, g, b)
 
 
+def generate_anon_name(session_id):
+    """Generate a unique anonymous name based on session ID."""
+    h = hashlib.md5(session_id.encode()).hexdigest()
+    return "anon" + h[:4]
+
+
 @socketio.on("connect")
 def handle_connect():
     connected_users.add(request.sid)
@@ -71,7 +77,10 @@ def handle_disconnect():
 
 @socketio.on("send_message")
 def handle_message(data):
-    nickname = (data.get("nickname") or "anon").strip()[:20]
+    nickname = (data.get("nickname") or "").strip()[:20]
+    # Generate unique anon name if no nickname provided
+    if not nickname:
+        nickname = generate_anon_name(request.sid)
     message = (data.get("message") or "").strip()[:MAX_MSG_LENGTH]
     if not message:
         return
