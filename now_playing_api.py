@@ -419,6 +419,7 @@ def residents():
             "bio": resident.get("bio", ""),
             "photo": "/residents/{}".format(resident.get("photo", "")),
             "social": resident.get("social", {}),
+            "sets": resident.get("sets", []),  # List of MP4 filenames
         })
     return jsonify(residents=result)
 
