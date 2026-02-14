@@ -330,6 +330,13 @@ def rtmp_publish():
     except Exception:
         pass
 
+    # Send Discord notification
+    try:
+        from discord_notifier import notify_live
+        notify_live()
+    except Exception as e:
+        print(f"Discord notification failed: {e}")
+
     print("OBS connected - went live!")
     return "OK", 200
 
@@ -355,6 +362,13 @@ def rtmp_done():
         os.remove(LIVE_MODE_FLAG)
     except OSError:
         pass
+
+    # Send Discord notification
+    try:
+        from discord_notifier import notify_end_live
+        notify_end_live()
+    except Exception as e:
+        print(f"Discord notification failed: {e}")
 
     # Restart automated stream
     _restart_auto_stream()
