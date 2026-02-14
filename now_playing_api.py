@@ -3,6 +3,7 @@ import os
 import subprocess
 import time
 
+import requests as http_requests
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
@@ -505,6 +506,19 @@ def get_submissions():
         return jsonify(submissions=submissions)
     except Exception as e:
         return jsonify(error=str(e)), 500
+
+
+# --- Calendar Proxy (to avoid CORS issues) ---
+CALENDAR_ICS_URL = "https://calendar.google.com/calendar/ical/ronautradio%40gmail.com/public/basic.ics"
+
+@app.route("/calendar.ics")
+def calendar_proxy():
+    """Proxy Google Calendar ICS feed to avoid CORS issues."""
+    try:
+        resp = http_requests.get(CALENDAR_ICS_URL, timeout=10)
+        return resp.text, 200, {"Content-Type": "text/calendar"}
+    except Exception as e:
+        return str(e), 500
 
 
 if __name__ == "__main__":
