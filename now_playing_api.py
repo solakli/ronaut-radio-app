@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import subprocess
 import time
 
@@ -68,6 +69,62 @@ def _display_name(filepath):
     if name.endswith(".mp4"):
         name = name[:-4]
     return name
+
+
+def _normalize_set_name(name):
+    """Normalize a set name to match renamed files (case/spacing/prefix agnostic)."""
+    base = os.path.basename(name or "")
+    if base.lower().endswith(".mp4"):
+        base = base[:-4]
+    base = base.strip()
+    # Strip leading "Ronaout[###]-" (or similar) prefixes
+    base = re.sub(r"^ronaut\[\d+\]\s*[-_ ]*", "", base, flags=re.IGNORECASE)
+    # Remove non-alphanumeric to make comparisons resilient to punctuation/spaces
+    base = re.sub(r"[^a-z0-9]+", "", base.lower())
+    return base
+
+
+def _build_mp4_index(root_dir="/root"):
+    """Map normalized names -> actual filenames present on disk."""
+    index = {}
+    try:
+        for entry in os.listdir(root_dir):
+            if entry.lower().endswith(".mp4"):
+                norm = _normalize_set_name(entry)
+                index.setdefault(norm, entry)
+    except OSError:
+        pass
+    return index
+
+
+def _resolve_filename(fname, mp4_index, fallback_name=""):
+    """Resolve an incoming filename/title to a real file in /root."""
+    if fname:
+        fname = os.path.basename(fname)
+        if os.path.isfile(os.path.join("/root", fname)):
+            return fname
+    candidate = fname or fallback_name
+    if not candidate:
+        return fname or ""
+    norm = _normalize_set_name(candidate)
+    return mp4_index.get(norm, fname or "")
+
+
+def _load_tracklist(name_candidates):
+    """Try loading tracklists for any of the candidate names."""
+    for name in name_candidates:
+        tracklist_path = f"/root/tracklists/{name}_tracklist.json"
+        try:
+            with open(tracklist_path, "r") as f:
+                tl_data = json.load(f)
+                return (
+                    tl_data.get("tracklist", []),
+                    tl_data.get("unidentified", []),
+                    tl_data.get("genres", []),
+                )
+        except (OSError, json.JSONDecodeError):
+            continue
+    return [], [], []
 
 
 # --- Endpoints ---
@@ -379,6 +436,7 @@ def rtmp_done():
 
 @app.route("/sets")
 def sets():
+    mp4_index = _build_mp4_index()
     try:
         with open(STAFF_PICKS_FILE, "r") as f:
             picks = json.load(f)
@@ -387,28 +445,26 @@ def sets():
 
     result = []
     for pick in picks:
-        fname = pick.get("filename", "")
-        name = fname.replace(".mp4", "") if fname.endswith(".mp4") else fname
+        raw_fname = pick.get("filename", "")
+        resolved_fname = _resolve_filename(raw_fname, mp4_index, pick.get("title", ""))
+        fname = resolved_fname or raw_fname
+        fname = os.path.basename(fname) if fname else ""
+        name = _display_name(fname) if fname else ""
 
-        # Load tracklist if available
-        tracklist_path = "/root/tracklists/{}_tracklist.json".format(name)
-        tracklist = []
-        unidentified = []
-        genres = []
-        try:
-            with open(tracklist_path, "r") as f:
-                tl_data = json.load(f)
-                tracklist = tl_data.get("tracklist", [])
-                unidentified = tl_data.get("unidentified", [])
-                genres = tl_data.get("genres", [])
-        except (OSError, json.JSONDecodeError):
-            pass
+        # Load tracklist if available (try resolved name, then raw name)
+        candidates = []
+        if name:
+            candidates.append(name)
+        raw_name = _display_name(raw_fname) if raw_fname else ""
+        if raw_name and raw_name not in candidates:
+            candidates.append(raw_name)
+        tracklist, unidentified, genres = _load_tracklist(candidates)
 
         result.append({
             "filename": fname,
             "title": pick.get("title", name),
             "description": pick.get("description", ""),
-            "thumbnail": "/sets/thumbs/{}.jpg".format(name),
+            "thumbnail": "/sets/thumbs/{}.jpg".format(name or raw_name),
             "url": "/sets/{}".format(fname),
             "genres": genres,
             "tracklist": tracklist,
@@ -421,6 +477,7 @@ def sets():
 @app.route("/residents")
 def residents():
     """Return list of featured residents."""
+    mp4_index = _build_mp4_index()
     try:
         with open(RESIDENTS_FILE, "r") as f:
             data = json.load(f)
@@ -429,12 +486,16 @@ def residents():
 
     result = []
     for resident in data:
+        resolved_sets = []
+        for s in resident.get("sets", []):
+            resolved = _resolve_filename(s, mp4_index, "")
+            resolved_sets.append(resolved or s)
         result.append({
             "name": resident.get("name", ""),
             "bio": resident.get("bio", ""),
             "photo": "/residents/{}".format(resident.get("photo", "")),
             "social": resident.get("social", {}),
-            "sets": resident.get("sets", []),  # List of MP4 filenames
+            "sets": resolved_sets,  # List of MP4 filenames
         })
     return jsonify(residents=result)
 
