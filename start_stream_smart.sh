@@ -37,8 +37,8 @@ flock -n 9 || { echo "Another streamer is running. Exiting."; exit 0; }
 touch "$PLAY_LOG"
 echo '{"file":"","display_name":"Starting...","started_at":0,"heartbeat":0,"playlist_index":0}' > "$NOW_PLAYING_JSON"
 
-# If the concat file is missing or empty, build a simple starter list from /root/*.mp4
-if [[ ! -s "$INPUT_CONCAT_FILE" ]]; then
+# Build playlist/concat if missing or stale (renamed/deleted files)
+rebuild_playlist() {
   mapfile -t _FILES < <(find /root -maxdepth 1 -type f -name "*.mp4" -printf "%p\n" | sort)
   if (( ${#_FILES[@]} == 0 )); then
     echo "❌ No mp4 files found in /root — cannot build playlist." | tee -a "$FFMPEG_LOG"
@@ -46,7 +46,27 @@ if [[ ! -s "$INPUT_CONCAT_FILE" ]]; then
   fi
   printf "%s\n" "${_FILES[@]}" > "$PLAYLIST_FILE"
   awk '{print "file \x27"$0"\x27"}' "$PLAYLIST_FILE" > "$INPUT_CONCAT_FILE"
-  echo "[bootstrap] Built starter concat at $INPUT_CONCAT_FILE with ${#_FILES[@]} files" | tee -a "$FFMPEG_LOG"
+  echo "[bootstrap] Built playlist+concat at $INPUT_CONCAT_FILE with ${#_FILES[@]} files" | tee -a "$FFMPEG_LOG"
+}
+
+playlist_needs_rebuild() {
+  [[ ! -s "$PLAYLIST_FILE" ]] && return 0
+  [[ ! -s "$INPUT_CONCAT_FILE" ]] && return 0
+  # If any playlist entry is missing on disk, rebuild
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    [[ -f "$line" ]] || return 0
+  done < "$PLAYLIST_FILE"
+  # If new files exist that aren't in the playlist, rebuild
+  local file_count playlist_count
+  file_count=$(find /root -maxdepth 1 -type f -name "*.mp4" | wc -l | tr -d ' ')
+  playlist_count=$(grep -c . "$PLAYLIST_FILE" || true)
+  [[ "$file_count" -ne "$playlist_count" ]] && return 0
+  return 1
+}
+
+if playlist_needs_rebuild; then
+  rebuild_playlist
 fi
 
 # Ensure a row exists in the state file for a given media path
