@@ -77,6 +77,14 @@ def _display_name(filepath):
     return name
 
 
+def _thumbnail_name(filepath):
+    """Extract thumbnail filename (basename minus .mp4, keeps original format)."""
+    name = os.path.basename(filepath)
+    if name.endswith(".mp4"):
+        name = name[:-4]
+    return name
+
+
 def _normalize_set_name(name):
     """Normalize a set name to match renamed files (case/spacing/prefix agnostic)."""
     base = os.path.basename(name or "")
@@ -456,21 +464,22 @@ def sets():
         fname = resolved_fname or raw_fname
         fname = os.path.basename(fname) if fname else ""
         name = _display_name(fname) if fname else ""
+        thumb_name = _thumbnail_name(fname) if fname else ""
 
-        # Load tracklist if available (try resolved name, then raw name)
+        # Load tracklist if available (try thumbnail name for file matching)
         candidates = []
-        if name:
-            candidates.append(name)
-        raw_name = _display_name(raw_fname) if raw_fname else ""
-        if raw_name and raw_name not in candidates:
-            candidates.append(raw_name)
+        if thumb_name:
+            candidates.append(thumb_name)
+        raw_thumb = _thumbnail_name(raw_fname) if raw_fname else ""
+        if raw_thumb and raw_thumb not in candidates:
+            candidates.append(raw_thumb)
         tracklist, unidentified, genres = _load_tracklist(candidates)
 
         result.append({
             "filename": fname,
             "title": pick.get("title", name),
             "description": pick.get("description", ""),
-            "thumbnail": "/sets/thumbs/{}.jpg".format(name or raw_name),
+            "thumbnail": "/sets/thumbs/{}.jpg".format(thumb_name or raw_thumb),
             "url": "/sets/{}".format(fname),
             "genres": genres,
             "tracklist": tracklist,
