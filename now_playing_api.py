@@ -64,12 +64,16 @@ def _detect_mode():
 
 
 def _display_name(filepath):
-    """Extract display name from a file path (basename minus .mp4 and Ronaut prefix)."""
+    """Extract display name from a file path, format as '001 - Name'."""
     name = os.path.basename(filepath)
     if name.endswith(".mp4"):
         name = name[:-4]
-    # Strip "Ronaut[XXX]-" prefix for cleaner display
-    name = re.sub(r"^Ronaut\[\d+\]\s*[-_]\s*", "", name, flags=re.IGNORECASE)
+    # Extract index from "Ronaut[XXX]-Name" format and reformat as "XXX - Name"
+    match = re.match(r"^Ronaut\[(\d+)\]\s*[-_]\s*(.+)$", name, flags=re.IGNORECASE)
+    if match:
+        index = match.group(1)
+        title = match.group(2)
+        return f"{index} - {title}"
     return name
 
 
