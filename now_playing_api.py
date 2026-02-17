@@ -475,13 +475,13 @@ def sets():
             candidates.append(raw_thumb)
         tracklist, unidentified, genres = _load_tracklist(candidates)
 
-        # Large files converted to HLS for mobile compatibility
-        hls_vod_map = {
-            "weho": "/hls-vod/weho.m3u8",
-            "talmadge": "/hls-vod/talmadge.m3u8",
-        }
+        # Check if HLS version exists (auto-detect, no hardcoding)
         norm_name = _normalize_set_name(fname)
-        vod_url = hls_vod_map.get(norm_name, "/sets/{}".format(fname))
+        hls_path = "/var/www/html/hls-vod/{}.m3u8".format(norm_name)
+        if os.path.isfile(hls_path):
+            vod_url = "/hls-vod/{}.m3u8".format(norm_name)
+        else:
+            vod_url = "/sets/{}".format(fname)
 
         result.append({
             "filename": fname,
