@@ -598,6 +598,97 @@ def get_submissions():
         return jsonify(error=str(e)), 500
 
 
+# --- VOD Play Tracking ---
+VOD_PLAYS_DB = "/root/vod_plays.db"
+
+
+def _get_vod_db():
+    """Get or create the VOD plays database."""
+    import sqlite3
+    conn = sqlite3.connect(VOD_PLAYS_DB)
+    conn.execute("""CREATE TABLE IF NOT EXISTS plays (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        set_name TEXT NOT NULL,
+        timestamp REAL NOT NULL,
+        duration INTEGER DEFAULT 0,
+        user_agent TEXT
+    )""")
+    conn.commit()
+    return conn
+
+
+@app.route("/vod-play", methods=["POST"])
+def log_vod_play():
+    """Log when someone plays a VOD (staff pick)."""
+    data = request.get_json() or {}
+    set_name = (data.get("set_name") or "").strip()
+
+    if not set_name:
+        return jsonify(error="Missing set_name"), 400
+
+    user_agent = request.headers.get("User-Agent", "")[:200]
+
+    try:
+        conn = _get_vod_db()
+        conn.execute(
+            "INSERT INTO plays (set_name, timestamp, user_agent) VALUES (?, ?, ?)",
+            (set_name, time.time(), user_agent)
+        )
+        conn.commit()
+        conn.close()
+        return jsonify(status="ok")
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+
+
+@app.route("/vod-stats")
+def vod_stats():
+    """Get VOD play statistics."""
+    days = request.args.get("days", "30")
+    try:
+        days = int(days)
+    except ValueError:
+        days = 30
+
+    cutoff = time.time() - (days * 86400)
+
+    try:
+        conn = _get_vod_db()
+
+        # Total plays
+        total = conn.execute(
+            "SELECT COUNT(*) FROM plays WHERE timestamp > ?", (cutoff,)
+        ).fetchone()[0]
+
+        # Plays per set
+        rows = conn.execute("""
+            SELECT set_name, COUNT(*) as plays
+            FROM plays
+            WHERE timestamp > ?
+            GROUP BY set_name
+            ORDER BY plays DESC
+        """, (cutoff,)).fetchall()
+
+        # Recent plays (last 20)
+        recent = conn.execute("""
+            SELECT set_name, timestamp
+            FROM plays
+            ORDER BY timestamp DESC
+            LIMIT 20
+        """).fetchall()
+
+        conn.close()
+
+        return jsonify(
+            days=days,
+            total_plays=total,
+            by_set=[{"set_name": r[0], "display_name": _display_name(r[0]), "plays": r[1]} for r in rows],
+            recent=[{"set_name": r[0], "display_name": _display_name(r[0]), "timestamp": r[1]} for r in recent]
+        )
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+
+
 # --- Calendar Proxy (to avoid CORS issues) ---
 CALENDAR_ICS_URL = "https://calendar.google.com/calendar/ical/ronautradio%40gmail.com/public/basic.ics"
 
