@@ -475,12 +475,20 @@ def sets():
             candidates.append(raw_thumb)
         tracklist, unidentified, genres = _load_tracklist(candidates)
 
+        # Large files converted to HLS for mobile compatibility
+        hls_vod_map = {
+            "weho": "/hls-vod/weho.m3u8",
+            "talmadge": "/hls-vod/talmadge.m3u8",
+        }
+        norm_name = _normalize_set_name(fname)
+        vod_url = hls_vod_map.get(norm_name, "/sets/{}".format(fname))
+
         result.append({
             "filename": fname,
             "title": pick.get("title", name),
             "description": pick.get("description", ""),
             "thumbnail": "/sets/thumbs/{}.jpg".format(thumb_name or raw_thumb),
-            "url": "/sets/{}".format(fname),
+            "url": vod_url,
             "genres": genres,
             "tracklist": tracklist,
             "unidentified": unidentified,
