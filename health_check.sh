@@ -7,7 +7,7 @@ STREAM_SCRIPT="/root/ronaut-radio-app/start_stream_smart.sh"
 LOG="/root/health_check.log"
 
 # If live event is active (OBS streaming), do NOT interfere
-[[ -f /root/live_mode.flag ]] && exit 0
+[[ -f /root/.live_mode ]] && exit 0
 
 # If ffmpeg is streaming, all good
 pgrep -f "ffmpeg.*live/stream" >/dev/null && exit 0
