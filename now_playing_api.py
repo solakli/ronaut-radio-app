@@ -3,6 +3,7 @@ import os
 import re
 import subprocess
 import time
+import xml.etree.ElementTree as ET
 
 import requests as http_requests
 from flask import Flask, jsonify, request
@@ -124,6 +125,29 @@ def _resolve_filename(fname, mp4_index, fallback_name=""):
     return mp4_index.get(norm, fname or "")
 
 
+def _get_current_track(fname, elapsed):
+    """Find the currently playing track within a set based on elapsed seconds."""
+    if not fname or elapsed <= 0:
+        return None
+    thumb = _thumbnail_name(fname)
+    candidates = [thumb] if thumb else []
+    tracklist, _, _ = _load_tracklist(candidates)
+    for entry in tracklist:
+        if entry.get("needs_id"):
+            continue
+        start = entry.get("start_time", 0)
+        end = entry.get("end_time", float("inf"))
+        if start <= elapsed < end:
+            artists = entry.get("artists", [])
+            return {
+                "title": entry.get("title", ""),
+                "artists": artists,
+                "start_time_formatted": entry.get("start_time_formatted", ""),
+                "end_time_formatted": entry.get("end_time_formatted", ""),
+            }
+    return None
+
+
 def _load_tracklist(name_candidates):
     """Try loading tracklists for any of the candidate names."""
     for name in name_candidates:
@@ -148,22 +172,25 @@ def now_playing():
     mode = _detect_mode()
 
     if mode == "live":
-        return jsonify(now_playing="LIVE", mode="live", started_at=0, file="")
+        return jsonify(now_playing="LIVE", mode="live", started_at=0, file="", current_track=None)
 
     if mode == "offline":
-        return jsonify(now_playing="Offline", mode="offline", started_at=0, file="")
+        return jsonify(now_playing="Offline", mode="offline", started_at=0, file="", current_track=None)
 
     try:
         with open(NOW_PLAYING_JSON, "r") as f:
             data = json.load(f)
+        elapsed = int(time.time()) - data.get("started_at", 0)
+        current_track = _get_current_track(data.get("file", ""), elapsed)
         return jsonify(
             now_playing=data.get("display_name", "Unknown"),
             mode="auto",
             started_at=data.get("started_at", 0),
             file=data.get("file", ""),
+            current_track=current_track,
         )
     except (OSError, json.JSONDecodeError):
-        return jsonify(now_playing="No track playing", mode="auto", started_at=0, file="")
+        return jsonify(now_playing="No track playing", mode="auto", started_at=0, file="", current_track=None)
 
 
 @app.route("/programme")
@@ -711,6 +738,22 @@ def calendar_proxy():
         return resp.text, 200, {"Content-Type": "text/calendar"}
     except Exception as e:
         return str(e), 500
+
+
+@app.route("/listeners")
+def listeners():
+    """Return current live listener count from nginx-rtmp stats."""
+    try:
+        res = http_requests.get("http://127.0.0.1/stat", timeout=2)
+        root = ET.fromstring(res.text)
+        count = 0
+        for app_el in root.findall(".//application"):
+            if app_el.findtext("name") == "live":
+                count = int(app_el.findtext(".//nclients") or 0)
+                break
+        return jsonify(listeners=max(0, count - 1))  # subtract ffmpeg publisher
+    except Exception:
+        return jsonify(listeners=None)
 
 
 if __name__ == "__main__":
