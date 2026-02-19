@@ -473,7 +473,10 @@ def sets():
         raw_thumb = _thumbnail_name(raw_fname) if raw_fname else ""
         if raw_thumb and raw_thumb not in candidates:
             candidates.append(raw_thumb)
-        tracklist, unidentified, genres = _load_tracklist(candidates)
+        tracklist, unidentified, tl_genres = _load_tracklist(candidates)
+
+        # Genres: manual override from bot takes priority, else auto-detected from tracklist
+        genres = pick.get("genres") or tl_genres
 
         # Check if HLS version exists (auto-detect, no hardcoding)
         norm_name = _normalize_set_name(fname)
@@ -489,7 +492,7 @@ def sets():
             "description": pick.get("description", ""),
             "thumbnail": "/sets/thumbs/{}.jpg".format(thumb_name or raw_thumb),
             "url": vod_url,
-            "genres": genres,
+            "genres": genres or [],
             "tracklist": tracklist,
             "unidentified": unidentified,
         })
