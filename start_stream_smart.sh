@@ -80,13 +80,15 @@ ensure_state_entry() {
 
 # ---------- Playlist builder (atomic, long, state-updating) ----------
 # Build a long weighted playlist and swap it in atomically. Also updates plays/last_played.
-# MIN_PLAY_MINUTES ensures we don't hit EOF quickly.
-: "${MIN_PLAY_MINUTES:=10080}"   # target total duration for a single playlist (~6h)
+# MIN_PLAY_MINUTES ensures we don't hit EOF quickly. MAX_PLAY_MINUTES hard-caps the length.
+: "${MIN_PLAY_MINUTES:=10080}"   # minimum total duration for a single playlist (7 days)
+: "${MAX_PLAY_MINUTES:=10080}"   # hard cap on playlist length (7 days)
 
 publish_playlist() {
-  local now total_dur tmp_all tmp_pl tmp_concat tmp_durs min_secs
+  local now total_dur tmp_all tmp_pl tmp_concat tmp_durs min_secs max_secs
   now=$(date +%s)
   min_secs=$(( MIN_PLAY_MINUTES * 60 ))
+  max_secs=$(( MAX_PLAY_MINUTES * 60 ))
 
   tmp_all="$(mktemp)"; tmp_pl="$(mktemp)"; tmp_concat="$(mktemp)"; tmp_durs="$(mktemp)"
   # cleanup temp files if function exits early
@@ -166,6 +168,23 @@ publish_playlist() {
     # guard: stop at ~24h to avoid runaway
     (( total_dur > 86400 )) && break
   done
+
+  # Trim to max duration at set boundaries: shuffle pool, then add sets one-by-one
+  # stopping before a set that would push us over the cap. Always ends on a clean set boundary.
+  if (( total_dur > max_secs )); then
+    local trimmed dur_acc entry_dur
+    trimmed="$(mktemp)"
+    dur_acc=0
+    while IFS= read -r line; do
+      entry_dur=$(awk -F'|' -v k="$line" '$1==k{print $2}' "$tmp_durs")
+      entry_dur=${entry_dur:-0}
+      (( dur_acc + entry_dur > max_secs )) && break
+      echo "$line" >> "$trimmed"
+      dur_acc=$(( dur_acc + entry_dur ))
+    done < <(shuf "$tmp_all")
+    mv "$trimmed" "$tmp_all"
+    total_dur=$dur_acc
+  fi
 
   # Final shuffle and publish
   shuf "$tmp_all" > "$tmp_pl"
