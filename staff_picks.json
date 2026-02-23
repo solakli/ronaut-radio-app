@@ -2,77 +2,91 @@
   {
     "filename": "Ronaut[001]-Andrea.mp4",
     "title": "Andrea",
-    "description": "Vinyl session"
+    "description": "Vinyl session",
+    "genres": ["Electronic", "Tech House", "House", "Techno", "Euro House"]
   },
   {
     "filename": "Ronaut[006]-Emami.mp4",
     "title": "Emami",
-    "description": "Deep cuts and rare finds"
+    "description": "Deep cuts and rare finds",
+    "genres": ["Electronic", "Hardcore", "Jungle"]
   },
   {
     "filename": "Ronaut[008]-Fede.mp4",
     "title": "Fede",
-    "description": "Curated selections"
+    "description": "Curated selections",
+    "genres": ["Electronic", "Minimal Techno", "Techno", "Dance"]
   },
   {
     "filename": "Ronaut[014]-SSSunday(Andrea).mp4",
     "title": "Sunday Session",
-    "description": "Sunday vibes with Andrea"
+    "description": "Sunday vibes with Andrea",
+    "genres": ["Electronic", "House", "Dance", "Funk / Soul", "Funk"]
   },
   {
     "filename": "Ronaut[002]-Ayse.mp4",
     "title": "Ayse",
-    "description": "Eclectic vinyl mix"
+    "description": "Eclectic vinyl mix",
+    "genres": ["Dance", "House", "Electronic", "Jungle/Drum'n'bass", "Rock"]
   },
   {
     "filename": "Ronaut[007]-Emir.mp4",
     "title": "Emir",
-    "description": "Sound explorations"
+    "description": "Sound explorations",
+    "genres": ["Electronic", "Experimental", "Funk / Soul", "Rock", "Jazz"]
   },
   {
     "filename": "Ronaut[004]-Blend Brett.mp4",
     "title": "Blend Brett",
-    "description": "Blended grooves"
+    "description": "Blended grooves",
+    "genres": ["Dance", "Jungle/Drum'n'bass", "Rock", "Electronic", "Deep House"]
   },
   {
     "filename": "Ronaut[003]-b2b2b.mp4",
     "title": "b2b2b",
-    "description": "Back to back to back"
+    "description": "Back to back to back",
+    "genres": ["Electronic", "House", "Dance", "Techno", "Tech House"]
   },
   {
     "filename": "Ronaut[011]-Weho.mp4",
     "title": "Westwood",
-    "description": "West Hollywood vibes"
+    "description": "West Hollywood vibes",
+    "genres": ["Electronic", "House", "Dance", "Tech House", "Deep House"]
   },
   {
     "filename": "Ronaut[009]-Talmadge-1.mp4",
     "title": "Talmadge",
-    "description": "Poolside sessions from Silverlake"
+    "description": "Poolside sessions from Silverlake",
+    "genres": ["Electronic", "House", "Dance", "Deep House", "Jazz"]
   },
   {
     "filename": "Ronaut[015]-Emir-Omer.mp4",
     "title": "Emir & Omer",
     "description": "Live session",
-    "genres": ["Electronic", "House", "Deep House", "Breakbeat"]
+    "genres": ["Electronic", "Dance", "House", "Deep House", "Breakbeat"]
   },
   {
     "filename": "Ronaut[016]-Emami-Live.mp4",
     "title": "Emami Live",
-    "description": "Recorded live"
+    "description": "Recorded live",
+    "genres": ["Electronic", "Trance", "Techno", "House", "Happy Hardcore"]
   },
   {
     "filename": "Ronaut[019]-Andrea-Emami-Emir-Omer-Flip-Part3.mp4",
     "title": "Part 3",
-    "description": "Feb 21 live"
+    "description": "Feb 21 live",
+    "genres": ["Electronic", "House", "Garage House", "Downtempo", "Deep House"]
   },
   {
     "filename": "Ronaut[018]-Andrea-Emami-Emir-Omer-Flip-Part2.mp4",
     "title": "Part 2",
-    "description": "Feb 21 live"
+    "description": "Feb 21 live",
+    "genres": ["Electronic", "House", "Dance", "Deep House", "Garage House"]
   },
   {
     "filename": "Ronaut[017]-Andrea-Emami-Emir-Omer-Flip-Part1.mp4",
     "title": "Part 1",
-    "description": "Feb 21 live"
+    "description": "Feb 21 live",
+    "genres": ["Electronic", "House", "Deep House", "Dance", "Deep Techno"]
   }
 ]
