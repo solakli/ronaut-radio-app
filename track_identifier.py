@@ -320,7 +320,7 @@ def enrich_with_discogs(tracklist: list) -> list:
         if discogs_genres:
             print(f"  Discogs: {artist} - {title} → {discogs_genres}")
             track["genres"] = discogs_genres
-        time.sleep(1.5)  # Discogs rate limit: 25 req/min unauthenticated
+        time.sleep(3)  # stay under 25 req/min unauthenticated
 
     return tracklist
 

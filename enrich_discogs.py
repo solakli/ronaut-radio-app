@@ -78,7 +78,7 @@ def enrich(json_path: str):
         else:
             print(f"  No Discogs result: {artist} - {title} (keeping: {original})\n")
 
-        time.sleep(1.5)  # ~25 req/min unauthenticated
+        time.sleep(3)  # stay under 25 req/min unauthenticated
 
     # Recalculate top-level set genres from enriched tracks
     all_genres = []
