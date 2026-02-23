@@ -770,11 +770,20 @@ def play_set():
     with open(PLAY_QUEUE_FILE, "w") as f:
         f.write("\n".join(resolved) + "\n")
 
-    # Kill ffmpeg — supervisor loop will restart and pick up the queue
+    # Restart the entire stream script so fresh code + queue are picked up
     try:
+        subprocess.run(["pkill", "-f", "start_stream_smart"], timeout=5, check=False)
         subprocess.run(["pkill", "-f", "ffmpeg.*concat"], timeout=5, check=False)
-    except Exception:
-        pass
+        time.sleep(1)
+        subprocess.Popen(
+            ["nohup", "bash", "/root/start_stream_smart.sh"],
+            stdout=open("/root/stream.log", "a"),
+            stderr=subprocess.STDOUT,
+            stdin=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+    except Exception as e:
+        print(f"Error restarting stream: {e}")
 
     return jsonify(
         status="ok",
