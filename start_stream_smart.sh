@@ -188,6 +188,23 @@ publish_playlist() {
 
   # Final shuffle and publish
   shuf "$tmp_all" > "$tmp_pl"
+
+  # Prepend any queued sets (written by /api/play-set) to the front of the playlist
+  local play_queue="/root/play_queue.txt"
+  if [[ -f "$play_queue" ]]; then
+    local queued_tmp
+    queued_tmp="$(mktemp)"
+    while IFS= read -r qf; do
+      [[ -n "$qf" && -f "$qf" ]] && echo "$qf" >> "$queued_tmp"
+    done < "$play_queue"
+    rm -f "$play_queue"
+    if [[ -s "$queued_tmp" ]]; then
+      cat "$queued_tmp" "$tmp_pl" > "${tmp_pl}.new" && mv "${tmp_pl}.new" "$tmp_pl"
+      echo "[queue] Prepended $(wc -l < "$queued_tmp" | tr -d ' ') queued set(s) to front of playlist" | tee -a "$FFMPEG_LOG"
+    fi
+    rm -f "$queued_tmp"
+  fi
+
   awk '{print "file \x27"$0"\x27"}' "$tmp_pl" > "$tmp_concat"
 
   # Atomic swaps: only now replace live files

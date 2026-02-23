@@ -24,7 +24,10 @@ import time as _time
 from pathlib import Path
 
 import discord
+import requests as http_requests
 from discord import app_commands
+
+API_BASE = "http://localhost:5050"
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), "discord_bot_config.json")
@@ -610,6 +613,104 @@ async def track_edit(interaction: discord.Interaction, set: str, position: int, 
     await interaction.response.send_message(embed=ok_embed(
         "Track updated",
         f"Track at `{ts}` — **{field}**:\n`{old}` → `{value}`"
+    ))
+
+
+# ── Stream control helpers ─────────────────────────────────────────────────
+
+def _fmt_set_name(filename: str) -> str:
+    """Format a raw filename into a readable display name."""
+    name = os.path.basename(filename)
+    if name.lower().endswith(".mp4"):
+        name = name[:-4]
+    m = re.match(r"^Ronaut\[(\d+)\]\s*[-_]\s*(.+)$", name, re.IGNORECASE)
+    if m:
+        return f"{m.group(1)} — {m.group(2)}"
+    return name
+
+
+# ── /playset ───────────────────────────────────────────────────────────────
+@tree.command(name="playset", description="Queue one or more sets to play next on the stream")
+@app_commands.describe(sets="Set name(s) separated by commas, e.g. 'emir-omer, emami'")
+async def playset(interaction: discord.Interaction, sets: str):
+    if not _guard(interaction):
+        return
+
+    await interaction.response.defer()
+
+    names = [s.strip() for s in sets.split(",") if s.strip()]
+    try:
+        resp = http_requests.post(f"{API_BASE}/play-set", json={"sets": names}, timeout=10)
+        data = resp.json()
+    except Exception as e:
+        await interaction.followup.send(embed=err_embed("API error", str(e)))
+        return
+
+    if resp.status_code != 200:
+        await interaction.followup.send(embed=err_embed("Not found", data.get("error", "Unknown error")))
+        return
+
+    queued = data.get("queued", [])
+    not_found = data.get("not_found", [])
+
+    lines = [f"**{i+1}.** {_fmt_set_name(q)}" for i, q in enumerate(queued)]
+    desc = "\n".join(lines)
+    if not_found:
+        desc += f"\n\n⚠️ Not found: `{'`, `'.join(not_found)}`"
+    desc += "\n\n_Stream restarts in ~10s_"
+
+    await interaction.followup.send(embed=ok_embed(
+        f"Queued {len(queued)} set{'s' if len(queued) != 1 else ''}",
+        desc
+    ))
+
+
+# ── /queue ─────────────────────────────────────────────────────────────────
+@tree.command(name="queue", description="Show what's queued and currently playing")
+async def show_queue(interaction: discord.Interaction):
+    if not _guard(interaction):
+        return
+
+    try:
+        q_resp = http_requests.get(f"{API_BASE}/queue", timeout=5).json()
+        np_resp = http_requests.get(f"{API_BASE}/now-playing", timeout=5).json()
+    except Exception as e:
+        await interaction.response.send_message(embed=err_embed("API error", str(e)))
+        return
+
+    queue = q_resp.get("queue", [])
+    now = np_resp.get("now_playing", "Unknown")
+    mode = np_resp.get("mode", "auto")
+
+    embed = discord.Embed(title="🎵 Stream Queue", color=0x3498DB)
+    embed.add_field(name="Now Playing", value=f"`{now}`" if mode == "auto" else f"🔴 {now}", inline=False)
+
+    if queue:
+        lines = [f"**{i+1}.** {q['display_name']}" for i, q in enumerate(queue)]
+        embed.add_field(name="Up Next (queued)", value="\n".join(lines), inline=False)
+    else:
+        embed.add_field(name="Up Next", value="Normal rotation — no queue", inline=False)
+
+    await interaction.response.send_message(embed=embed)
+
+
+# ── /skip ──────────────────────────────────────────────────────────────────
+@tree.command(name="skip", description="Skip the current set (~10s restart)")
+async def skip_set(interaction: discord.Interaction):
+    if not _guard(interaction):
+        return
+
+    try:
+        np_data = http_requests.get(f"{API_BASE}/now-playing", timeout=5).json()
+        current = np_data.get("now_playing", "current set")
+        http_requests.post(f"{API_BASE}/skip", timeout=5)
+    except Exception as e:
+        await interaction.response.send_message(embed=err_embed("API error", str(e)))
+        return
+
+    await interaction.response.send_message(embed=ok_embed(
+        "Skipped",
+        f"Skipped **{current}** — next set starting in ~10s"
     ))
 
 

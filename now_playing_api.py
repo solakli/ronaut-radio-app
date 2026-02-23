@@ -21,6 +21,7 @@ HLS_M3U8 = "/var/www/html/hls/stream.m3u8"
 LIVE_MODE_FLAG = "/root/.live_mode"
 STAFF_PICKS_FILE = "/root/staff_picks.json"
 RESIDENTS_FILE = "/root/residents.json"
+PLAY_QUEUE_FILE = "/root/play_queue.txt"
 
 HEARTBEAT_STALE_SECONDS = 20
 HLS_STALE_SECONDS = 15
@@ -738,6 +739,71 @@ def calendar_proxy():
         return resp.text, 200, {"Content-Type": "text/calendar"}
     except Exception as e:
         return str(e), 500
+
+
+@app.route("/play-set", methods=["POST"])
+def play_set():
+    """Queue one or more sets to play next, then restart the stream."""
+    data = request.get_json() or {}
+    names = data.get("sets", [])
+    if isinstance(names, str):
+        names = [names]
+    names = [n.strip() for n in names if n.strip()]
+    if not names:
+        return jsonify(error="No sets specified"), 400
+
+    mp4_index = _build_mp4_index()
+    resolved = []
+    not_found = []
+    for name in names:
+        fname = _resolve_filename(name, mp4_index, name)
+        full_path = os.path.join("/root", fname) if fname else ""
+        if fname and os.path.isfile(full_path):
+            resolved.append(full_path)
+        else:
+            not_found.append(name)
+
+    if not resolved:
+        return jsonify(error="No sets found", not_found=not_found), 404
+
+    # Write queue file — stream script picks this up on restart
+    with open(PLAY_QUEUE_FILE, "w") as f:
+        f.write("\n".join(resolved) + "\n")
+
+    # Kill ffmpeg — supervisor loop will restart and pick up the queue
+    try:
+        subprocess.run(["pkill", "-f", "ffmpeg.*concat"], timeout=5, check=False)
+    except Exception:
+        pass
+
+    return jsonify(
+        status="ok",
+        queued=[os.path.basename(p) for p in resolved],
+        not_found=not_found,
+        eta_seconds=10,
+    )
+
+
+@app.route("/queue")
+def get_queue():
+    """Return the current play queue (sets waiting to play next)."""
+    queue = []
+    if os.path.isfile(PLAY_QUEUE_FILE):
+        with open(PLAY_QUEUE_FILE) as f:
+            queue = [line.strip() for line in f if line.strip()]
+    return jsonify(
+        queue=[{"file": os.path.basename(p), "display_name": _display_name(p)} for p in queue]
+    )
+
+
+@app.route("/skip", methods=["POST"])
+def skip():
+    """Skip the current set by restarting ffmpeg."""
+    try:
+        subprocess.run(["pkill", "-f", "ffmpeg.*concat"], timeout=5, check=False)
+    except Exception:
+        pass
+    return jsonify(status="ok")
 
 
 @app.route("/listeners")
