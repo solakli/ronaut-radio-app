@@ -38,6 +38,10 @@ MAX_POPULARITY = 100000  # reject tracks with more Shazam plays than this
 MIN_CONFIDENCE = 30  # minimum ACRCloud score (0-100) - lowered for rare vinyl
 USE_SHAZAM = True  # Use Shazam as primary (True) or ACRCloud (False)
 
+# Discogs settings
+DISCOGS_USER_AGENT = "RonautRadio/1.0 +https://ronautradio.la"
+DISCOGS_SEARCH_URL = "https://api.discogs.com/database/search"
+
 
 def sign_request(string_to_sign: str, access_secret: str) -> str:
     """Generate HMAC-SHA1 signature for ACRCloud."""
@@ -273,6 +277,54 @@ def parse_acr_result(result: dict) -> dict | None:
     }
 
 
+def lookup_discogs_genres(artist: str, title: str) -> list:
+    """
+    Look up a track on Discogs and return combined genres + styles.
+    Returns empty list if not found or on error.
+    """
+    if not artist or not title or artist.lower() in ("unknown", ""):
+        return []
+
+    query = f"{artist} {title}"
+    params = {"q": query, "type": "release", "per_page": 3}
+    headers = {"User-Agent": DISCOGS_USER_AGENT}
+
+    try:
+        response = requests.get(DISCOGS_SEARCH_URL, params=params, headers=headers, timeout=10)
+        if response.status_code != 200:
+            return []
+        data = response.json()
+        results = data.get("results", [])
+        if not results:
+            return []
+
+        # Combine genres and styles from the top result
+        top = results[0]
+        genres = top.get("genre", [])
+        styles = top.get("style", [])
+        return list(dict.fromkeys(genres + styles))  # deduplicate, preserve order
+    except Exception:
+        return []
+
+
+def enrich_with_discogs(tracklist: list) -> list:
+    """Enrich confirmed tracks with Discogs genre/style data."""
+    if not tracklist:
+        return tracklist
+
+    print("Enriching genres via Discogs...")
+    for track in tracklist:
+        artist = track["artists"][0] if track["artists"] else ""
+        title = track["title"]
+        discogs_genres = lookup_discogs_genres(artist, title)
+        if discogs_genres:
+            print(f"  Discogs: {artist} - {title} → {discogs_genres}")
+            track["genres"] = discogs_genres
+        time.sleep(1.5)  # Discogs rate limit: 25 req/min unauthenticated
+
+    return tracklist
+
+
 def process_set(mp4_path: str, output_json: str = None) -> list:
     """
     Process an entire set, identify tracks with confidence filtering.
@@ -345,6 +397,9 @@ def process_set(mp4_path: str, output_json: str = None) -> list:
     # Apply confidence filtering
     print("\nApplying confidence filters...")
     tracklist = apply_confidence_filter(raw_matches)
+
+    # Enrich genres with Discogs subgenre/style data
+    tracklist = enrich_with_discogs(tracklist)
 
     # Aggregate genres from all tracks to determine set vibe
     from collections import Counter
