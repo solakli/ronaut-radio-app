@@ -152,17 +152,24 @@ def _get_current_track(fname, elapsed):
 def _load_tracklist(name_candidates):
     """Try loading tracklists for any of the candidate names."""
     for name in name_candidates:
-        tracklist_path = f"/root/tracklists/{name}_tracklist.json"
-        try:
-            with open(tracklist_path, "r") as f:
-                tl_data = json.load(f)
-                return (
-                    tl_data.get("tracklist", []),
-                    tl_data.get("unidentified", []),
-                    tl_data.get("genres", []),
-                )
-        except (OSError, json.JSONDecodeError):
-            continue
+        # Try patterns in order: legacy _tracklist.json, then normalized .json
+        normalized = _normalize_set_name(name)
+        candidates_to_try = [
+            f"/root/tracklists/{name}_tracklist.json",
+            f"/root/tracklists/{normalized}_tracklist.json",
+            f"/root/tracklists/{normalized}.json",
+        ]
+        for tracklist_path in candidates_to_try:
+            try:
+                with open(tracklist_path, "r") as f:
+                    tl_data = json.load(f)
+                    return (
+                        tl_data.get("tracklist", []),
+                        tl_data.get("unidentified", []),
+                        tl_data.get("genres", []),
+                    )
+            except (OSError, json.JSONDecodeError):
+                continue
     return [], [], []
 
 
