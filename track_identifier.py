@@ -333,7 +333,10 @@ def process_set(mp4_path: str, output_json: str = None) -> list:
     set_name = Path(mp4_path).stem
 
     if output_json is None:
-        output_json = f"{set_name}_tracklist.json"
+        # Save as normalized name in /root/tracklists/ so the API can find it automatically
+        normalized = re.sub(r"^ronaut\[\d+\]\s*[-_ ]*", "", set_name, flags=re.IGNORECASE)
+        normalized = re.sub(r"[^a-z0-9]+", "", normalized.lower())
+        output_json = f"/root/tracklists/{normalized}.json"
 
     print(f"Processing: {set_name}")
 
