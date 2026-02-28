@@ -838,5 +838,69 @@ def listeners():
         return jsonify(listeners=None)
 
 
+@app.route("/kpi")
+def kpi():
+    """
+    Return stream health KPIs from kpi.log.
+    ?rows=N   — last N snapshots (default 24h = 288 rows at 5-min intervals)
+    ?summary=1 — return 24h summary stats instead of raw rows
+    """
+    KPI_LOG = "/root/kpi.log"
+    rows_param = request.args.get("rows", 288, type=int)
+    summary_mode = request.args.get("summary", "0") == "1"
+
+    if not os.path.isfile(KPI_LOG):
+        return jsonify(error="kpi.log not found — is kpi_logger.sh running?"), 404
+
+    try:
+        with open(KPI_LOG) as f:
+            lines = f.read().splitlines()
+
+        if len(lines) < 2:
+            return jsonify(error="Not enough data yet"), 404
+
+        headers = lines[0].split("\t")
+        rows = []
+        for line in lines[1:]:
+            parts = line.split("\t")
+            if len(parts) == len(headers):
+                rows.append(dict(zip(headers, parts)))
+
+        recent = rows[-rows_param:]
+
+        if summary_mode:
+            total = len(recent)
+            if total == 0:
+                return jsonify(error="No data"), 404
+
+            healthy = sum(1 for r in recent if r.get("status") == "healthy")
+            frozen  = sum(1 for r in recent if r.get("status") == "frozen")
+            speeds  = [float(r["ffmpeg_speed"]) for r in recent if r.get("ffmpeg_speed", "0") != "0"]
+            listeners = [int(r["live_listeners"]) for r in recent if r.get("live_listeners", "0").isdigit()]
+            seg_ages  = [int(r["segment_age_s"]) for r in recent if r.get("segment_age_s", "9999").isdigit()]
+            freeze_total = int(recent[-1].get("freeze_today", 0)) if recent else 0
+            restart_total = int(recent[-1].get("restarts_today", 0)) if recent else 0
+
+            return jsonify(
+                period_rows=total,
+                uptime_pct=round(healthy / total * 100, 1),
+                frozen_snapshots=frozen,
+                freeze_events_today=freeze_total,
+                restart_events_today=restart_total,
+                avg_ffmpeg_speed=round(sum(speeds) / len(speeds), 3) if speeds else None,
+                min_ffmpeg_speed=round(min(speeds), 3) if speeds else None,
+                peak_listeners=max(listeners) if listeners else 0,
+                avg_listeners=round(sum(listeners) / len(listeners), 1) if listeners else 0,
+                avg_segment_age_s=round(sum(seg_ages) / len(seg_ages), 1) if seg_ages else None,
+                max_segment_age_s=max(seg_ages) if seg_ages else None,
+                latest=recent[-1] if recent else None,
+            )
+
+        return jsonify(headers=headers, rows=recent)
+
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5050)
