@@ -18,7 +18,7 @@ TODAY=$(date +%Y-%m-%d)
 newest_ts=$(find "$HLS_DIR" -name "*.ts" -printf "%T@\n" 2>/dev/null | sort -n | tail -1)
 if [[ -n "$newest_ts" ]]; then
     now=$(date +%s)
-    segment_age=$(echo "$now - $newest_ts" | bc | cut -d. -f1)
+    segment_age=$(awk "BEGIN {printf \"%d\", $now - $newest_ts}")
 else
     segment_age=9999
 fi
@@ -70,8 +70,10 @@ live_listeners=$(tail -3000 "$NGINX_ACCESS" 2>/dev/null \
 live_listeners=${live_listeners:-0}
 
 # --- Freeze and restart events today (from health_check.log) ---
-freeze_events=$(grep -c "$TODAY.*frozen" "$HEALTH_LOG" 2>/dev/null || echo 0)
-restart_events=$(grep -c "$TODAY.*Restart triggered\|$TODAY.*Supervisor started" "$HEALTH_LOG" 2>/dev/null || echo 0)
+freeze_events=$(grep -c "$TODAY.*frozen" "$HEALTH_LOG" 2>/dev/null; true)
+freeze_events=${freeze_events:-0}
+restart_events=$(grep -c "$TODAY.*Restart triggered\|$TODAY.*Supervisor started" "$HEALTH_LOG" 2>/dev/null; true)
+restart_events=${restart_events:-0}
 
 # --- Write TSV header if file is new ---
 if [[ ! -f "$KPI_LOG" ]]; then
