@@ -238,7 +238,7 @@ run_ffmpeg() {
     -force_key_frames "expr:gte(t,n_forced*2)" \
     -b:v "$VB" -maxrate "$VBMAX" -bufsize "$VBBUF" \
     -c:a aac -profile:a aac_low -b:a "$AB" -ar "$AR" -ac 2 \
-    -af "aresample=resampler=soxr:osf=s32:dither_method=triangular_hp,asetpts=N/SR/TB" \
+    -af "aresample=resampler=soxr:osf=s32:dither_method=triangular_hp:async=1000,asetpts=N/SR/TB" \
     -vsync 1 -muxpreload 0 -muxdelay 0 \
     -f flv "$RTMP_URL"
 }
