@@ -844,15 +844,16 @@ def play_stats():
     Total stream stats: total sets played, total hours, top sets with durations.
     Used by the KPI dashboard.
     """
-    # Load durations: filepath -> seconds
-    durations = {}
+    # Load durations keyed by normalized name (durations.txt uses | separator)
+    dur_by_norm = {}
     try:
         with open(DURATIONS_FILE) as f:
             for line in f:
-                parts = line.strip().split("\t")
+                parts = line.strip().split("|")
                 if len(parts) >= 2:
                     try:
-                        durations[parts[0]] = int(float(parts[1]))
+                        norm = _normalize_set_name(os.path.basename(parts[0]))
+                        dur_by_norm[norm] = int(float(parts[1]))
                     except ValueError:
                         pass
     except OSError:
@@ -873,20 +874,20 @@ def play_stats():
     except OSError:
         pass
 
-    # Aggregate per set
+    # Aggregate per set — use normalized name as key so old/new filenames merge
     agg = {}
     for e in entries:
-        k = e["file"]
-        dur = durations.get(k, 0)
-        if k not in agg:
-            agg[k] = {
-                "display_name": _display_name(k),
+        norm = _normalize_set_name(os.path.basename(e["file"]))
+        dur = dur_by_norm.get(norm, 0)
+        if norm not in agg:
+            agg[norm] = {
+                "display_name": _display_name(e["file"]),
                 "play_count": 0,
                 "duration_s": dur,
                 "total_play_s": 0,
             }
-        agg[k]["play_count"] += 1
-        agg[k]["total_play_s"] += dur
+        agg[norm]["play_count"] += 1
+        agg[norm]["total_play_s"] += dur
 
     top_sets = sorted(agg.values(), key=lambda x: x["play_count"], reverse=True)[:10]
     total_plays = len(entries)
