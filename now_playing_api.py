@@ -838,6 +838,67 @@ def listeners():
         return jsonify(listeners=None)
 
 
+@app.route("/play-stats")
+def play_stats():
+    """
+    Total stream stats: total sets played, total hours, top sets with durations.
+    Used by the KPI dashboard.
+    """
+    # Load durations: filepath -> seconds
+    durations = {}
+    try:
+        with open(DURATIONS_FILE) as f:
+            for line in f:
+                parts = line.strip().split("\t")
+                if len(parts) >= 2:
+                    try:
+                        durations[parts[0]] = int(float(parts[1]))
+                    except ValueError:
+                        pass
+    except OSError:
+        pass
+
+    # Load play log
+    entries = []
+    try:
+        with open(PLAY_LOG_FILE) as f:
+            for line in f:
+                parts = line.strip().split("\t")
+                if len(parts) < 2:
+                    continue
+                try:
+                    entries.append({"ts": int(parts[0]), "file": parts[1]})
+                except ValueError:
+                    pass
+    except OSError:
+        pass
+
+    # Aggregate per set
+    agg = {}
+    for e in entries:
+        k = e["file"]
+        dur = durations.get(k, 0)
+        if k not in agg:
+            agg[k] = {
+                "display_name": _display_name(k),
+                "play_count": 0,
+                "duration_s": dur,
+                "total_play_s": 0,
+            }
+        agg[k]["play_count"] += 1
+        agg[k]["total_play_s"] += dur
+
+    top_sets = sorted(agg.values(), key=lambda x: x["play_count"], reverse=True)[:10]
+    total_plays = len(entries)
+    total_hours = round(sum(v["total_play_s"] for v in agg.values()) / 3600, 1)
+
+    return jsonify(
+        total_plays=total_plays,
+        total_hours=total_hours,
+        top_sets=top_sets,
+    )
+
+
 @app.route("/kpi")
 def kpi():
     """
