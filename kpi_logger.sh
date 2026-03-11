@@ -82,16 +82,34 @@ freeze_events=${freeze_events:-0}
 restart_events=$(grep -c "$TODAY.*Restart triggered\|$TODAY.*Supervisor started" "$HEALTH_LOG" 2>/dev/null; true)
 restart_events=${restart_events:-0}
 
+# --- A/V timestamp drift (audio PTS minus video PTS in newest live segment) ---
+# This predicts startup delay: ~0s = fast, ~2s = 8s delay, ~4s = 20s delay
+newest_ts_file=$(find "$HLS_DIR" -name "stream-*.ts" -printf "%T@\t%p\n" 2>/dev/null | sort -n | tail -1 | cut -f2)
+if [[ -n "$newest_ts_file" ]]; then
+    av_drift=$(ffprobe -v quiet -print_format json -show_packets \
+        -read_intervals "%+#20" "$newest_ts_file" 2>/dev/null | \
+        python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+a = [float(p['pts_time']) for p in d['packets'] if p.get('codec_type')=='audio' and 'pts_time' in p]
+v = [float(p['pts_time']) for p in d['packets'] if p.get('codec_type')=='video' and 'pts_time' in p]
+print(f'{abs(a[0]-v[0]):.3f}' if a and v else -1)
+" 2>/dev/null || echo -1)
+else
+    av_drift=-1
+fi
+av_drift=${av_drift:-"-1"}
+
 # --- Write TSV header if file is new ---
 if [[ ! -f "$KPI_LOG" ]]; then
-    printf "timestamp\tstatus\tsegment_age_s\tsegment_count\tffmpeg_speed\tffmpeg_fps\tffmpeg_bitrate_kbps\tffmpeg_cpu_pct\tffmpeg_uptime_min\tram_free_gb\tlive_listeners\tfreeze_today\trestarts_today\n" \
+    printf "timestamp\tstatus\tsegment_age_s\tsegment_count\tffmpeg_speed\tffmpeg_fps\tffmpeg_bitrate_kbps\tffmpeg_cpu_pct\tffmpeg_uptime_min\tram_free_gb\tlive_listeners\tfreeze_today\trestarts_today\tav_drift_s\n" \
         > "$KPI_LOG"
 fi
 
 # --- Append KPI snapshot ---
-printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
     "$TIMESTAMP" "$status" "$segment_age" "$segment_count" \
     "$ffmpeg_speed" "$ffmpeg_fps" "$ffmpeg_bitrate" "$ffmpeg_cpu" \
     "$ffmpeg_uptime_min" "$ram_free" "$live_listeners" \
-    "$freeze_events" "$restart_events" \
+    "$freeze_events" "$restart_events" "$av_drift" \
     >> "$KPI_LOG"

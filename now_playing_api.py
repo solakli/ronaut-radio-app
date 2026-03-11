@@ -925,8 +925,10 @@ def kpi():
         rows = []
         for line in lines[1:]:
             parts = line.split("\t")
-            if len(parts) == len(headers):
-                rows.append(dict(zip(headers, parts)))
+            if len(parts) >= 1:
+                # Pad missing trailing columns (e.g. old rows before schema update)
+                padded = parts + [""] * (len(headers) - len(parts))
+                rows.append(dict(zip(headers, padded[:len(headers)])))
 
         recent = rows[-rows_param:]
 
