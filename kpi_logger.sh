@@ -45,8 +45,15 @@ ffmpeg_speed=${ffmpeg_speed:-"0"}
 ffmpeg_fps=${ffmpeg_fps:-"0"}
 ffmpeg_bitrate=${ffmpeg_bitrate:-"0"}
 
-# --- ffmpeg CPU % ---
-ffmpeg_cpu=$(ps aux | grep "ffmpeg.*live/stream" | grep -v grep | awk '{print $3}' | head -1)
+# --- System CPU % (1-second /proc/stat sample — accurate, multi-core aware) ---
+cpu1=($(awk '/^cpu /{print $2,$3,$4,$5,$6,$7,$8}' /proc/stat))
+sleep 1
+cpu2=($(awk '/^cpu /{print $2,$3,$4,$5,$6,$7,$8}' /proc/stat))
+total1=0; for v in "${cpu1[@]}"; do total1=$((total1+v)); done
+total2=0; for v in "${cpu2[@]}"; do total2=$((total2+v)); done
+idle1=${cpu1[3]}; idle2=${cpu2[3]}
+dtotal=$((total2-total1)); didle=$((idle2-idle1))
+ffmpeg_cpu=$(awk "BEGIN{printf \"%.1f\", 100*($dtotal-$didle)/$dtotal}")
 ffmpeg_cpu=${ffmpeg_cpu:-"0"}
 
 # --- ffmpeg process uptime (minutes) ---
