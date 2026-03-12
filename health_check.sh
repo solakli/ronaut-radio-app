@@ -11,9 +11,6 @@ MAX_SEGMENT_AGE=30  # seconds — if newest .ts is older than this, stream is fr
 # If live event is active (OBS streaming), do NOT interfere
 [[ -f /root/.live_mode ]] && exit 0
 
-# If supervisor is starting up, leave it alone
-pgrep -f "start_stream_smart.sh" >/dev/null && exit 0
-
 ffmpeg_pid=$(pgrep -f "ffmpeg.*live/stream" | head -1)
 supervisor_running=0
 pgrep -f "start_stream_smart.sh" >/dev/null && supervisor_running=1
@@ -31,14 +28,18 @@ if [[ -n "$ffmpeg_pid" ]]; then
   fi
 fi
 
-# All good
+# All good — ffmpeg running and HLS is fresh
 [[ -n "$ffmpeg_pid" && $is_frozen -eq 0 ]] && exit 0
 
-# Wait 10s to rule out a brief transition glitch, then recheck
+# Supervisor is alive but ffmpeg hasn't launched yet — give it time
+[[ $supervisor_running -eq 1 && -z "$ffmpeg_pid" ]] && exit 0
+
+# Wait 10s to rule out a brief segment gap (e.g. mid-restart)
 sleep 10
-pgrep -f "start_stream_smart.sh" >/dev/null && exit 0
 
 ffmpeg_pid=$(pgrep -f "ffmpeg.*live/stream" | head -1)
+supervisor_running=0
+pgrep -f "start_stream_smart.sh" >/dev/null && supervisor_running=1
 
 is_frozen=0
 if [[ -n "$ffmpeg_pid" ]]; then
@@ -57,9 +58,9 @@ fi
 # --- Something is wrong ---
 
 if [[ -n "$ffmpeg_pid" && $is_frozen -eq 1 ]]; then
-  # ffmpeg is running but frozen — kill it only.
+  # ffmpeg is running but frozen — kill it.
   # The supervisor (while true loop in start_stream_smart.sh) will detect the death
-  # and restart ffmpeg automatically with the same playlist. No reshuffle needed.
+  # and restart ffmpeg automatically. No reshuffle needed.
   echo "[$(date -Is)] ffmpeg frozen (no HLS segments in ${MAX_SEGMENT_AGE}s) — killing PID $ffmpeg_pid, supervisor will restart" >> "$LOG"
   kill "$ffmpeg_pid" 2>/dev/null || true
 
@@ -67,8 +68,8 @@ if [[ -n "$ffmpeg_pid" && $is_frozen -eq 1 ]]; then
     -H "Content-Type: application/json" \
     -d '{"embeds":[{"title":"⚠️ Stream Frozen","description":"ffmpeg frozen — killed and restarting via supervisor. No playlist change.","color":15158332}]}' >/dev/null
 
-elif [[ -z "$ffmpeg_pid" ]]; then
-  # ffmpeg is completely gone (and supervisor too, otherwise we'd have exited early)
+elif [[ -z "$ffmpeg_pid" && $supervisor_running -eq 0 ]]; then
+  # Both ffmpeg and supervisor are gone
   echo "[$(date -Is)] Stream fully down — starting supervisor from scratch" >> "$LOG"
 
   nohup bash "$STREAM_SCRIPT" >> /root/ffmpeg_random_stream.log 2>&1 &
@@ -77,4 +78,8 @@ elif [[ -z "$ffmpeg_pid" ]]; then
   curl -s -X POST "$WEBHOOK" \
     -H "Content-Type: application/json" \
     -d '{"embeds":[{"title":"⚠️ Stream Offline","description":"Stream was fully down. Supervisor restarted.","color":15158332}]}' >/dev/null
+
+elif [[ -z "$ffmpeg_pid" && $supervisor_running -eq 1 ]]; then
+  # Supervisor is alive but no ffmpeg — should self-heal, just log
+  echo "[$(date -Is)] ffmpeg not found but supervisor is running — waiting for auto-restart" >> "$LOG"
 fi
