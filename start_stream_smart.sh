@@ -27,6 +27,7 @@ flock -n 9 || { echo "Another streamer is running. Exiting."; exit 0; }
 : "${PLAY_LOG:=/root/play_log.tsv}"
 : "${LIVE_MODE_FLAG:=/root/.live_mode}"
 : "${HLS_M3U8:=/var/www/html/hls/stream.m3u8}"
+: "${HLS_DIR:=/var/www/html/hls}"
 
 # Ensure writable temp files exist
 : > "$FFMPEG_LOG"
@@ -305,6 +306,46 @@ fd_watcher() {
   done
 }
 
+# ---------- Internal HLS watchdog ----------
+# Runs in background alongside ffmpeg. If no fresh HLS segments for 45s,
+# kills ffmpeg so the supervisor loop can restart it. Defense-in-depth
+# against frozen-but-alive ffmpeg that external health check cron might miss.
+WATCHDOG_MAX_AGE=45   # seconds of no new segments before killing ffmpeg
+WATCHDOG_INTERVAL=10  # how often to check (seconds)
+
+hls_watchdog() {
+  local ffmpeg_pid="$1"
+  local stale_count=0
+  local needed=$(( WATCHDOG_MAX_AGE / WATCHDOG_INTERVAL ))
+
+  while kill -0 "$ffmpeg_pid" 2>/dev/null; do
+    sleep "$WATCHDOG_INTERVAL"
+
+    # Don't interfere during live OBS mode
+    [[ -f "$LIVE_MODE_FLAG" ]] && { stale_count=0; continue; }
+
+    newest=$(find "$HLS_DIR" -name "*.ts" -printf "%T@\n" 2>/dev/null | sort -n | tail -1)
+    if [[ -z "$newest" ]]; then
+      age=99999
+    else
+      age=$(( $(date +%s) - ${newest%.*} ))
+    fi
+
+    if (( age > WATCHDOG_MAX_AGE )); then
+      stale_count=$(( stale_count + 1 ))
+    else
+      stale_count=0
+    fi
+
+    # Require two consecutive stale checks to avoid false-positive during segment gap
+    if (( stale_count >= 2 )); then
+      echo "[watchdog $(date -Is)] HLS stale ${age}s — killing frozen ffmpeg PID $ffmpeg_pid" | tee -a "$FFMPEG_LOG"
+      kill "$ffmpeg_pid" 2>/dev/null || true
+      return
+    fi
+  done
+}
+
 # ---------- OBS-aware supervisor ----------
 
 echo "🚀 Starting FFmpeg…"
@@ -334,12 +375,14 @@ while true; do
   done
 
   set +e
-  # Start watcher in background — it finds ffmpeg's PID after a brief delay
+  # Start fd_watcher and hls_watchdog in background after ffmpeg launches
   ( sleep 3
     _fpid=$(pgrep -f "ffmpeg.*concat" | head -n1)
     if [[ -n "$_fpid" ]]; then
-      echo "[supervisor] ffmpeg PID=$_fpid — starting fd_watcher" >> "$FFMPEG_LOG"
-      fd_watcher "$_fpid"
+      echo "[supervisor] ffmpeg PID=$_fpid — starting fd_watcher + hls_watchdog" >> "$FFMPEG_LOG"
+      fd_watcher "$_fpid" &
+      hls_watchdog "$_fpid" &
+      wait
     fi
   ) &
   _watcher_bg=$!
