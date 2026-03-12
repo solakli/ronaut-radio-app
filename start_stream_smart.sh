@@ -339,7 +339,9 @@ hls_watchdog() {
 
     # Require two consecutive stale checks to avoid false-positive during segment gap
     if (( stale_count >= 2 )); then
-      echo "[watchdog $(date -Is)] HLS stale ${age}s — killing frozen ffmpeg PID $ffmpeg_pid" | tee -a "$FFMPEG_LOG"
+      local _msg="[watchdog $(date -Is)] HLS stale ${age}s — killing frozen ffmpeg PID $ffmpeg_pid"
+      echo "$_msg" | tee -a "$FFMPEG_LOG"
+      echo "$_msg" >> /root/health_check.log
       kill "$ffmpeg_pid" 2>/dev/null || true
       return
     fi
