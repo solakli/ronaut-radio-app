@@ -23,7 +23,7 @@ if [[ -n "$ffmpeg_pid" ]]; then
     is_frozen=1
   else
     now=$(date +%s)
-    age=$(echo "$now - $newest_ts" | bc | cut -d. -f1)
+    age=$(( now - ${newest_ts%.*} ))
     [[ $age -gt $MAX_SEGMENT_AGE ]] && is_frozen=1
   fi
 fi
@@ -48,7 +48,7 @@ if [[ -n "$ffmpeg_pid" ]]; then
     is_frozen=1
   else
     now=$(date +%s)
-    age=$(echo "$now - $newest_ts" | bc | cut -d. -f1)
+    age=$(( now - ${newest_ts%.*} ))
     [[ $age -gt $MAX_SEGMENT_AGE ]] && is_frozen=1
   fi
 fi
