@@ -233,13 +233,13 @@ run_ffmpeg() {
     -f concat -safe 0 -i "$INPUT_CONCAT_FILE" \
     -map 0:v:0 -map 0:a:0? \
     -vf "setpts=N/${FPS}/TB,format=yuv420p" \
-    -c:v libx264 -preset veryfast -pix_fmt yuv420p -r "$FPS" \
+    -c:v libx264 -preset veryfast -pix_fmt yuv420p -r "$FPS" -bf 0 \
     -g "$GOP" -keyint_min "$GOP" -sc_threshold 0 \
-    -x264-params "scenecut=0:keyint=$GOP:min-keyint=$GOP:open_gop=0" \
+    -x264-params "scenecut=0:keyint=$GOP:min-keyint=$GOP:open_gop=0:bframes=0" \
     -force_key_frames "expr:gte(t,n_forced*2)" \
     -b:v "$VB" -maxrate "$VBMAX" -bufsize "$VBBUF" \
     -c:a aac -profile:a aac_low -b:a "$AB" -ar "$AR" -ac 2 \
-    -af "aresample=resampler=soxr:osf=s32:dither_method=triangular_hp:async=48000,asetpts=N/SR/TB" \
+    -af "aresample=resampler=soxr:osf=s32:dither_method=triangular_hp:async=1" \
     -vsync 1 -muxpreload 0 -muxdelay 0 \
     -f flv "$RTMP_URL"
 }
