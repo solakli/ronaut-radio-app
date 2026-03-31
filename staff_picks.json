@@ -187,5 +187,23 @@
       "Deep House",
       "Dance"
     ]
+  },
+  {
+    "filename": "Ronaut[020]-Omer-S-Caswell.mp4",
+    "title": "Omer S x Caswell",
+    "description": "Back to back session",
+    "genres": ["Electronic", "House", "Deep House", "Dance"]
+  },
+  {
+    "filename": "Ronaut[005]-caswell.mp4",
+    "title": "Caswell",
+    "description": "Vinyl session",
+    "genres": ["Electronic", "House", "Tech House", "Dance"]
+  },
+  {
+    "filename": "Ronaut[010]-Thurs-Night.mp4",
+    "title": "Thursday Night",
+    "description": "Late night session",
+    "genres": ["Electronic", "House", "Deep House", "Techno"]
   }
 ]
