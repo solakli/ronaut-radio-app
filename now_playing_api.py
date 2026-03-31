@@ -24,7 +24,7 @@ RESIDENTS_FILE = "/root/residents.json"
 PLAY_QUEUE_FILE = "/root/play_queue.txt"
 
 HEARTBEAT_STALE_SECONDS = 20
-HLS_STALE_SECONDS = 15
+HLS_STALE_SECONDS = 90
 
 
 def _file_age(path):
