@@ -530,6 +530,7 @@ def sets():
             "genres": genres or [],
             "tracklist": tracklist,
             "unidentified": unidentified,
+            "featured": pick.get("featured", True),
         })
     return jsonify(sets=result)
 
