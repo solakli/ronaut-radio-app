@@ -190,15 +190,29 @@ def now_playing():
             data = json.load(f)
         elapsed = int(time.time()) - data.get("started_at", 0)
         current_track = _get_current_track(data.get("file", ""), elapsed)
+        # Look up duration for the current file
+        duration = 0
+        current_file = data.get("file", "")
+        try:
+            with open(DURATIONS_FILE, "r") as df:
+                for line in df:
+                    parts = line.strip().split("|")
+                    if len(parts) >= 2 and parts[0] == current_file:
+                        duration = int(float(parts[1]))
+                        break
+        except OSError:
+            pass
         return jsonify(
             now_playing=data.get("display_name", "Unknown"),
             mode="auto",
             started_at=data.get("started_at", 0),
             file=data.get("file", ""),
             current_track=current_track,
+            elapsed=elapsed,
+            duration=duration,
         )
     except (OSError, json.JSONDecodeError):
-        return jsonify(now_playing="No track playing", mode="auto", started_at=0, file="", current_track=None)
+        return jsonify(now_playing="No track playing", mode="auto", started_at=0, file="", current_track=None, elapsed=0, duration=0)
 
 
 @app.route("/programme")
