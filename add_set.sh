@@ -17,7 +17,7 @@ fi
 MP4_PATH="/root/$MP4_FILE"
 STAFF_PICKS="/root/staff_picks.json"
 HLS_DIR="/var/www/html/hls-vod"
-THUMB_DIR="/root/ronaut-radio-app/sets/thumbs"
+THUMB_DIR="/var/www/html/sets/thumbs"
 
 # Check MP4 exists
 if [[ ! -f "$MP4_PATH" ]]; then
@@ -107,3 +107,6 @@ echo ""
 echo "=== DONE ==="
 echo "Set '$TITLE' added to Staff Picks"
 echo "It will appear on the website immediately (API reads dynamically)"
+echo ""
+echo "Remember to commit and push staff_picks.json from local:"
+echo "  git pull on VPS or scp staff_picks.json locally and git push"
