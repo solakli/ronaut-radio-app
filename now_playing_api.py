@@ -535,6 +535,71 @@ def sets():
     return jsonify(sets=result)
 
 
+# --- Share page (OG tags for iMessage/WhatsApp previews) ---
+@app.route("/share/sets/<slug>")
+def share_set(slug):
+    from flask import Response
+    mp4_index = _build_mp4_index()
+    try:
+        with open(STAFF_PICKS_FILE, "r") as f:
+            picks = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        picks = []
+
+    # Find matching set by normalized slug
+    matched = None
+    for pick in picks:
+        raw_fname = pick.get("filename", "")
+        resolved_fname = _resolve_filename(raw_fname, mp4_index, pick.get("title", ""))
+        fname = os.path.basename(resolved_fname or raw_fname)
+        norm = _normalize_set_name(fname)
+        if norm == slug.lower():
+            matched = pick
+            matched_fname = fname
+            break
+
+    if not matched:
+        return Response("Not found", status=404)
+
+    title = matched.get("title", slug)
+    description = matched.get("description", "A DJ set on Ronaut Radio")
+    thumb_name = _thumbnail_name(matched_fname)
+    number_match = re.search(r'\[(\d+)\]', matched_fname)
+    number = number_match.group(1) if number_match else ""
+
+    og_title = "Ronaut[{}] {} — Ronaut Radio".format(number, title) if number else "{} — Ronaut Radio".format(title)
+    og_description = description
+    og_image = "https://stream.ronautradio.la/sets/thumbs/{}.jpg".format(thumb_name)
+    redirect_url = "https://ronautradio.la/?view=sets&set={}".format(slug)
+
+    html = """<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{title}</title>
+  <meta property="og:title" content="{og_title}">
+  <meta property="og:description" content="{og_description}">
+  <meta property="og:image" content="{og_image}">
+  <meta property="og:url" content="{redirect_url}">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{og_title}">
+  <meta name="twitter:description" content="{og_description}">
+  <meta name="twitter:image" content="{og_image}">
+  <meta http-equiv="refresh" content="0;url={redirect_url}">
+  <script>window.location.replace("{redirect_url}");</script>
+</head>
+<body></body>
+</html>""".format(
+        title=og_title,
+        og_title=og_title,
+        og_description=og_description,
+        og_image=og_image,
+        redirect_url=redirect_url
+    )
+    return Response(html, mimetype="text/html")
+
+
 # --- Residents ---
 @app.route("/residents")
 def residents():
