@@ -8,7 +8,7 @@ HLS_DIR="/var/www/html/hls"
 LOG="/root/health_check.log"
 MAX_SEGMENT_AGE=30  # seconds — if newest .ts is older than this, stream is frozen
 LOAD_ALERT_THRESHOLD=20   # 1-min load average above this triggers alert
-MEM_ALERT_THRESHOLD_GB=1  # free RAM below this (GB) triggers alert
+MEM_ALERT_THRESHOLD_MB=300  # free RAM below this (MB) triggers alert
 ALERT_LOCK="/tmp/resource_alert.lock"
 ALERT_COOLDOWN=1800  # seconds — don't re-alert within 30 min
 
@@ -16,15 +16,14 @@ ALERT_COOLDOWN=1800  # seconds — don't re-alert within 30 min
 load_1min=$(awk '{print $1}' /proc/loadavg)
 load_int=${load_1min%.*}
 mem_free_kb=$(awk '/MemAvailable/ {print $2}' /proc/meminfo)
-mem_free_gb=$(( mem_free_kb / 1024 / 1024 ))
+mem_free_mb=$(( mem_free_kb / 1024 ))
 
 resource_alert=""
 if (( load_int >= LOAD_ALERT_THRESHOLD )); then
   resource_alert="${resource_alert}🔥 **Load average: ${load_1min}** (threshold: ${LOAD_ALERT_THRESHOLD})\n"
 fi
-if (( mem_free_gb < MEM_ALERT_THRESHOLD_GB )); then
-  mem_free_mb=$(( mem_free_kb / 1024 ))
-  resource_alert="${resource_alert}🧠 **Free RAM: ${mem_free_mb}MB** (threshold: ${MEM_ALERT_THRESHOLD_GB}GB)\n"
+if (( mem_free_mb < MEM_ALERT_THRESHOLD_MB )); then
+  resource_alert="${resource_alert}🧠 **Free RAM: ${mem_free_mb}MB** (threshold: ${MEM_ALERT_THRESHOLD_MB}MB)\n"
 fi
 
 if [[ -n "$resource_alert" ]]; then
