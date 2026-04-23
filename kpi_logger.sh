@@ -65,8 +65,8 @@ else
     ffmpeg_uptime_min=0
 fi
 
-# --- RAM free (GB) ---
-ram_free=$(free -g | awk '/^Mem:/{print $7}')
+# --- RAM free (MB) ---
+ram_free_mb=$(free -m | awk '/^Mem:/{print $7}')
 
 # --- Live HLS listener count ---
 # Count unique IPs that requested live .ts segments in the last ~5 min
@@ -102,7 +102,7 @@ av_drift=${av_drift:-"-1"}
 
 # --- Write TSV header if file is new ---
 if [[ ! -f "$KPI_LOG" ]]; then
-    printf "timestamp\tstatus\tsegment_age_s\tsegment_count\tffmpeg_speed\tffmpeg_fps\tffmpeg_bitrate_kbps\tffmpeg_cpu_pct\tffmpeg_uptime_min\tram_free_gb\tlive_listeners\tfreeze_today\trestarts_today\tav_drift_s\n" \
+    printf "timestamp\tstatus\tsegment_age_s\tsegment_count\tffmpeg_speed\tffmpeg_fps\tffmpeg_bitrate_kbps\tffmpeg_cpu_pct\tffmpeg_uptime_min\tram_free_mb\tlive_listeners\tfreeze_today\trestarts_today\tav_drift_s\n" \
         > "$KPI_LOG"
 fi
 
@@ -110,6 +110,6 @@ fi
 printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
     "$TIMESTAMP" "$status" "$segment_age" "$segment_count" \
     "$ffmpeg_speed" "$ffmpeg_fps" "$ffmpeg_bitrate" "$ffmpeg_cpu" \
-    "$ffmpeg_uptime_min" "$ram_free" "$live_listeners" \
+    "$ffmpeg_uptime_min" "$ram_free_mb" "$live_listeners" \
     "$freeze_events" "$restart_events" "$av_drift" \
     >> "$KPI_LOG"
