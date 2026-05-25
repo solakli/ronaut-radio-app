@@ -1,20 +1,23 @@
 [
   {
+    "filename": "Ronaut[025]-Omer-S-Arsenal.mp4",
+    "title": "Arsenal",
+    "description": "Omer S"
+  },
+  {
+    "filename": "Ronaut[024]-Cena-Debut.mp4",
+    "title": "Cena Debut",
+    "description": "Cena's debut set at Ronaut Radio"
+  },
+  {
+    "filename": "Ronaut[023]-2-Rolls.mp4",
+    "title": "2 Rolls",
+    "description": "Two rolls session"
+  },
+  {
     "filename": "Ronaut[021]-Mostly-Vinyl-LA-Omer-Neoke.mp4",
     "title": "Mostly Vinyl LA",
     "description": "Omer & Neoke \u2014 all vinyl"
-  },
-  {
-    "filename": "Ronaut[001]-Andrea.mp4",
-    "title": "Andrea",
-    "description": "Vinyl session",
-    "genres": [
-      "Electronic",
-      "Tech House",
-      "House",
-      "Techno",
-      "Euro House"
-    ]
   },
   {
     "filename": "Ronaut[006]-Emami.mp4",
@@ -105,6 +108,7 @@
     "filename": "Ronaut[003]-b2b2b.mp4",
     "title": "b2b2b",
     "description": "Back to back to back",
+    "featured": false,
     "genres": [
       "Electronic",
       "House",
@@ -114,33 +118,10 @@
     ]
   },
   {
-    "filename": "Ronaut[009]-Talmadge-1.mp4",
-    "title": "Talmadge",
-    "description": "Poolside sessions from Silverlake",
-    "genres": [
-      "Electronic",
-      "House",
-      "Dance",
-      "Deep House",
-      "Jazz"
-    ]
-  },
-  {
-    "filename": "Ronaut[015]-Emir-Omer.mp4",
-    "title": "Emir & Omer",
-    "description": "Live session",
-    "genres": [
-      "Electronic",
-      "Dance",
-      "House",
-      "Deep House",
-      "Breakbeat"
-    ]
-  },
-  {
     "filename": "Ronaut[016]-Emami-Live.mp4",
     "title": "Emami Live",
     "description": "Recorded live",
+    "featured": false,
     "genres": [
       "Electronic",
       "Trance",
@@ -148,61 +129,5 @@
       "House",
       "Happy Hardcore"
     ]
-  },
-  {
-    "filename": "Ronaut[019]-Andrea-Emami-Emir-Omer-Flip-Part3.mp4",
-    "title": "Part 3",
-    "description": "Feb 21 live",
-    "genres": [
-      "Electronic",
-      "House",
-      "Garage House",
-      "Downtempo",
-      "Deep House"
-    ]
-  },
-  {
-    "filename": "Ronaut[018]-Andrea-Emami-Emir-Omer-Flip-Part2.mp4",
-    "title": "Part 2",
-    "description": "Feb 21 live",
-    "genres": [
-      "Electronic",
-      "House",
-      "Dance",
-      "Deep House",
-      "Garage House"
-    ]
-  },
-  {
-    "filename": "Ronaut[017]-Andrea-Emami-Emir-Omer-Flip-Part1.mp4",
-    "title": "Part 1",
-    "description": "Feb 21 live",
-    "genres": [
-      "Electronic",
-      "House",
-      "Deep House",
-      "Dance",
-      "Deep Techno"
-    ]
-  },
-  {
-    "filename": "Ronaut[022]-Blend-Brett-2.mp4",
-    "title": "Blend Brett II",
-    "description": "Blended grooves"
-  },
-  {
-    "filename": "Ronaut[024]-Cena-Debut.mp4",
-    "title": "Cena Debut",
-    "description": "Cena's debut set at Ronaut Radio"
-  },
-  {
-    "filename": "Ronaut[023]-2-Rolls.mp4",
-    "title": "2 Rolls",
-    "description": "Two rolls session"
-  },
-  {
-    "filename": "Ronaut[025]-Omer-S-Arsenal.mp4",
-    "title": "Arsenal",
-    "description": "Omer S"
   }
 ]
