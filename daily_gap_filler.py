@@ -125,6 +125,9 @@ def query_shazam(audio_path):
             data=data,
             timeout=30,
         )
+        if resp.status_code in (429, 403):
+            msg = resp.json().get("message", f"HTTP {resp.status_code}")
+            return None, {"api_error": msg, "status_code": resp.status_code}
         j = resp.json()
         matches = j.get("results", {}).get("matches", [])
         if not matches:
@@ -259,6 +262,11 @@ def run():
         id1, resp1 = query_shazam(chunk1)
         os.unlink(chunk1)
         raw_matches.append({"start_time": t, "track": {"shazam_id": id1 or ""}})
+
+        if resp1.get("api_error"):
+            print(f"    API ERROR: {resp1['api_error']}")
+            print("    ABORTING — upgrade Shazam plan at rapidapi.com")
+            break
 
         if not id1:
             print(f"    Shot 1: no match")

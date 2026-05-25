@@ -95,6 +95,9 @@ def identify_chunk_shazam(audio_path: str) -> dict:
             data=audio_b64,
             timeout=30,
         )
+        if response.status_code in (429, 403):
+            msg = response.json().get("message", f"HTTP {response.status_code}")
+            return {"api_error": msg, "status_code": response.status_code}
         return response.json()
     except Exception as e:
         return {"error": str(e)}
@@ -102,7 +105,7 @@ def identify_chunk_shazam(audio_path: str) -> dict:
 
 def parse_shazam_result(result: dict) -> dict | None:
     """Parse Shazam v3 response into a simplified track dict."""
-    if "error" in result:
+    if "error" in result or "api_error" in result:
         return None
 
     # Check for matches in the v3 API response format
@@ -389,6 +392,10 @@ def process_set(mp4_path: str, output_json: str = None) -> list:
                 })
             else:
                 if USE_SHAZAM:
+                    if "api_error" in result:
+                        print(f"  [{i+1}/{total_chunks}] {start_time//60}:{start_time%60:02d} - API ERROR: {result['api_error']}")
+                        print("  ABORTING: quota/auth error — upgrade plan at rapidapi.com")
+                        break
                     msg = result.get("error", "No match")
                 else:
                     status = result.get("status", {})
