@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """
-Enrich an existing tracklist JSON with Discogs genre/style data.
+Enrich an existing tracklist JSON with Discogs metadata.
+
+Adds per-track: year, label, catno, genres/styles.
+Also falls back to Shazam release_date for year if Discogs has none.
+Recalculates top-level set genres from enriched track data.
 
 Usage:
-  python3 enrich_discogs.py <tracklist.json>
-  python3 enrich_discogs.py /root/tracklists/emiromer.json
-
-Updates the genres field on each confirmed track in-place and
-recalculates the top-level set genres from enriched track data.
+  python3 enrich_discogs.py <tracklist.json>           # single file
+  python3 enrich_discogs.py /root/tracklists/           # all JSONs in dir
 """
 
 import json
+import os
 import sys
 import time
 from collections import Counter
@@ -21,9 +23,10 @@ DISCOGS_USER_AGENT = "RonautRadio/1.0 +https://ronautradio.la"
 DISCOGS_SEARCH_URL = "https://api.discogs.com/database/search"
 
 
-def lookup_discogs_genres(artist: str, title: str) -> list:
+def lookup_discogs(artist: str, title: str) -> dict:
+    """Return dict with year, label, catno, genres from Discogs, or empty dict."""
     if not artist or not title or artist.lower() in ("unknown", ""):
-        return []
+        return {}
 
     query = f"{artist} {title}"
     params = {"q": query, "type": "release", "per_page": 3}
@@ -31,21 +34,46 @@ def lookup_discogs_genres(artist: str, title: str) -> list:
 
     try:
         response = requests.get(DISCOGS_SEARCH_URL, params=params, headers=headers, timeout=10)
+        if response.status_code == 429:
+            print("  Discogs rate limit hit — sleeping 60s")
+            time.sleep(60)
+            response = requests.get(DISCOGS_SEARCH_URL, params=params, headers=headers, timeout=10)
         if response.status_code != 200:
             print(f"  Discogs HTTP {response.status_code} for: {query}")
-            return []
+            return {}
         data = response.json()
         results = data.get("results", [])
         if not results:
-            return []
+            return {}
 
         top = results[0]
         genres = top.get("genre", [])
         styles = top.get("style", [])
-        return list(dict.fromkeys(genres + styles))  # deduplicate, preserve order
+        labels = top.get("label", [])
+
+        return {
+            "year": str(top.get("year", "")).strip() or "",
+            "label": labels[0] if labels else "",
+            "catno": top.get("catno", "").strip(),
+            "genres": list(dict.fromkeys(genres + styles)),
+        }
     except Exception as e:
         print(f"  Discogs error for '{query}': {e}")
-        return []
+        return {}
+
+
+def _shazam_year_for_track(data: dict, track: dict) -> str:
+    """Pull release_date out of raw_matches for this track's acrid."""
+    acrid = track.get("acrid", "")
+    if not acrid:
+        return ""
+    for raw in data.get("raw_matches", []):
+        t = raw.get("track", {})
+        if t.get("acrid") == acrid:
+            rd = t.get("release_date", "")
+            # Shazam release_date is often "YYYY" or "YYYY-MM-DD"
+            return rd[:4] if rd else ""
+    return ""
 
 
 def enrich(json_path: str):
@@ -53,36 +81,54 @@ def enrich(json_path: str):
         data = json.load(f)
 
     tracklist = data.get("tracklist", [])
-    if not tracklist:
-        print("No confirmed tracks to enrich.")
+    confirmed = [t for t in tracklist if not t.get("needs_id")]
+    if not confirmed:
+        print(f"  No confirmed tracks — skipping {os.path.basename(json_path)}")
         return
 
-    print(f"Enriching {len(tracklist)} tracks via Discogs...\n")
+    print(f"\n=== {os.path.basename(json_path)} ({len(confirmed)} tracks) ===")
 
-    for track in tracklist:
+    changed = 0
+    for track in confirmed:
         artist = track["artists"][0] if track.get("artists") else ""
         title = track.get("title", "")
 
         if not artist or not title:
-            print(f"  Skipping (no artist/title): {artist} - {title}")
+            print(f"  Skip (no artist/title): {artist} — {title}")
             continue
 
-        original = track.get("genres", [])
-        discogs = lookup_discogs_genres(artist, title)
+        result = lookup_discogs(artist, title)
 
-        if discogs:
-            track["genres"] = discogs
-            print(f"  {artist} - {title}")
-            print(f"    Before: {original}")
-            print(f"    After:  {discogs}\n")
+        if result:
+            # Year: prefer Discogs, fall back to Shazam release_date
+            year = result.get("year") or _shazam_year_for_track(data, track)
+            label = result.get("label", "")
+            catno = result.get("catno", "")
+            genres = result.get("genres", [])
+
+            track["year"] = year
+            track["label"] = label
+            track["catno"] = catno
+            if genres:
+                track["genres"] = genres
+
+            meta = " · ".join(filter(None, [label, catno, year]))
+            print(f"  {artist} — {title}")
+            print(f"    {meta or '(no meta)'} | genres: {genres[:3]}")
+            changed += 1
         else:
-            print(f"  No Discogs result: {artist} - {title} (keeping: {original})\n")
+            # Still try to pull year from Shazam raw data
+            year = _shazam_year_for_track(data, track)
+            if year and not track.get("year"):
+                track["year"] = year
+                changed += 1
+            print(f"  No Discogs result: {artist} — {title}" + (f" (year from Shazam: {year})" if year else ""))
 
-        time.sleep(3)  # stay under 25 req/min unauthenticated
+        time.sleep(3)  # stay under ~20 req/min unauthenticated
 
     # Recalculate top-level set genres from enriched tracks
     all_genres = []
-    for track in tracklist:
+    for track in confirmed:
         all_genres.extend(track.get("genres", []))
     genre_counts = Counter(all_genres)
     top_genres = [g for g, _ in genre_counts.most_common(5)]
@@ -91,12 +137,23 @@ def enrich(json_path: str):
     with open(json_path, "w") as f:
         json.dump(data, f, indent=2)
 
-    print(f"Set genres updated: {top_genres}")
-    print(f"Saved to: {json_path}")
+    print(f"  Saved. {changed}/{len(confirmed)} tracks enriched. Set genres: {top_genres}")
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python3 enrich_discogs.py <tracklist.json>")
+        print("Usage: python3 enrich_discogs.py <tracklist.json|directory>")
         sys.exit(1)
-    enrich(sys.argv[1])
+
+    target = sys.argv[1]
+
+    if os.path.isdir(target):
+        files = sorted(
+            f for f in os.listdir(target)
+            if f.endswith(".json") and not f.endswith(".log")
+        )
+        print(f"Processing {len(files)} files in {target}")
+        for fname in files:
+            enrich(os.path.join(target, fname))
+    else:
+        enrich(target)
