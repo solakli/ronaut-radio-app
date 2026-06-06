@@ -129,5 +129,59 @@
       "House",
       "Happy Hardcore"
     ]
+  },
+  {
+    "filename": "Ronaut[022]-Blend-Brett-2.mp4",
+    "title": "Blend Brett II",
+    "description": "Second session",
+    "featured": false
+  },
+  {
+    "filename": "Ronaut[020]-Omer-S-Caswell.mp4",
+    "title": "Omer S x Caswell",
+    "description": "Back to back",
+    "featured": false
+  },
+  {
+    "filename": "Ronaut[015]-Emir-Omer.mp4",
+    "title": "Emir & Omer",
+    "description": "Back to back",
+    "featured": false
+  },
+  {
+    "filename": "Ronaut[010]-Thurs-Night.mp4",
+    "title": "Thursday Night",
+    "description": "Late night session",
+    "featured": false
+  },
+  {
+    "filename": "Ronaut[009]-Talmadge-1.mp4",
+    "title": "Talmadge",
+    "description": "Talmadge sessions",
+    "featured": false
+  },
+  {
+    "filename": "Ronaut[001]-Andrea.mp4",
+    "title": "Andrea",
+    "description": "Andrea's first set",
+    "featured": false
+  },
+  {
+    "filename": "Ronaut[017]-Andrea-Emami-Emir-Omer-Flip-Part1.mp4",
+    "title": "Flip pt. 1",
+    "description": "Andrea, Emami, Emir, Omer",
+    "featured": false
+  },
+  {
+    "filename": "Ronaut[018]-Andrea-Emami-Emir-Omer-Flip-Part2.mp4",
+    "title": "Flip pt. 2",
+    "description": "Andrea, Emami, Emir, Omer",
+    "featured": false
+  },
+  {
+    "filename": "Ronaut[019]-Andrea-Emami-Emir-Omer-Flip-Part3.mp4",
+    "title": "Flip pt. 3",
+    "description": "Andrea, Emami, Emir, Omer",
+    "featured": false
   }
 ]
