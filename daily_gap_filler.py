@@ -152,6 +152,12 @@ def parse_track(shazam_id, raw_response):
         if attrs.get("name"):
             artist_name = attrs["name"]
             break
+    song_title = ""
+    for s in resources.get("songs", {}).values():
+        attrs = s.get("attributes", {})
+        if attrs.get("title"):
+            song_title = attrs["title"]
+            break
     genres = []
     for g in resources.get("genres", {}).values():
         name = g.get("attributes", {}).get("name", "")
@@ -161,10 +167,11 @@ def parse_track(shazam_id, raw_response):
     full_artist = album_info.get("artistName", artist_name)
     album_name  = album_info.get("name", "").replace(" - Single", "")
     release_date = album_info.get("releaseDate", "")
+    track_title = song_title or album_name
 
     return {
         "acrid":        f"shazam_{shazam_id}",
-        "title":        album_name,
+        "title":        track_title,
         "artists":      [full_artist] if full_artist else [],
         "album":        album_name,
         "label":        "",

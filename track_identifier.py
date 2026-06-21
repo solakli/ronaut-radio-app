@@ -121,6 +121,15 @@ def parse_shazam_result(result: dict) -> dict | None:
     albums = resources.get("albums", {})
     artists_data = resources.get("artists", {})
     genres_data = resources.get("genres", {})
+    songs_data = resources.get("songs", {})
+
+    # Get song title (actual track name, most reliable)
+    song_title = ""
+    for song in songs_data.values():
+        attrs = song.get("attributes", {})
+        if attrs.get("title"):
+            song_title = attrs["title"]
+            break
 
     # Get album info (contains artist name and album name)
     album_info = {}
@@ -149,13 +158,15 @@ def parse_shazam_result(result: dict) -> dict | None:
     full_artist = album_info.get("artistName", artist_name)
     album_name = album_info.get("name", "").replace(" - Single", "")  # Clean up single suffix
     release_date = album_info.get("releaseDate", "")
+    # Use song title as primary, fall back to album name
+    track_title = song_title or album_name
 
-    if not full_artist and not album_name:
+    if not full_artist and not track_title:
         return None
 
     return {
         "acrid": f"shazam_{shazam_id}",
-        "title": album_name,
+        "title": track_title,
         "artists": [full_artist] if full_artist else [],
         "album": album_name,
         "label": "",
