@@ -2,7 +2,7 @@
 """
 Enrich an existing tracklist JSON with Discogs metadata.
 
-Adds per-track: year, label, catno, genres/styles.
+Adds per-track: year, label, catno, genres/styles, discogs_url.
 Also falls back to Shazam release_date for year if Discogs has none.
 Recalculates top-level set genres from enriched track data.
 
@@ -24,7 +24,7 @@ DISCOGS_SEARCH_URL = "https://api.discogs.com/database/search"
 
 
 def lookup_discogs(artist: str, title: str) -> dict:
-    """Return dict with year, label, catno, genres from Discogs, or empty dict."""
+    """Return dict with year, label, catno, genres, discogs_url from Discogs, or empty dict."""
     if not artist or not title or artist.lower() in ("unknown", ""):
         return {}
 
@@ -50,12 +50,15 @@ def lookup_discogs(artist: str, title: str) -> dict:
         genres = top.get("genre", [])
         styles = top.get("style", [])
         labels = top.get("label", [])
+        uri = top.get("uri", "")
+        discogs_url = f"https://www.discogs.com{uri}" if uri else ""
 
         return {
             "year": str(top.get("year", "")).strip() or "",
             "label": labels[0] if labels else "",
             "catno": top.get("catno", "").strip(),
             "genres": list(dict.fromkeys(genres + styles)),
+            "discogs_url": discogs_url,
         }
     except Exception as e:
         print(f"  Discogs error for '{query}': {e}")
@@ -105,12 +108,15 @@ def enrich(json_path: str):
             label = result.get("label", "")
             catno = result.get("catno", "")
             genres = result.get("genres", [])
+            discogs_url = result.get("discogs_url", "")
 
             track["year"] = year
             track["label"] = label
             track["catno"] = catno
             if genres:
                 track["genres"] = genres
+            if discogs_url:
+                track["discogs_url"] = discogs_url
 
             meta = " · ".join(filter(None, [label, catno, year]))
             print(f"  {artist} — {title}")
