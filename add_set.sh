@@ -91,10 +91,10 @@ exists = any(p.get("filename") == "$MP4_FILE" for p in picks)
 if exists:
     print("  Already in staff_picks.json, skipping")
 else:
-    picks.append(new_entry)
+    picks.insert(0, new_entry)  # newest first — matches site ordering
     with open("$STAFF_PICKS", "w") as f:
         json.dump(picks, f, indent=2)
-    print("  Added to staff_picks.json")
+    print("  Added to staff_picks.json (top of list)")
 PYEOF
 
 # Step 4: Verify
