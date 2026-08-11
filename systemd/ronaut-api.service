@@ -1,0 +1,15 @@
+[Unit]
+Description=Ronaut Radio now-playing API (Flask, port 5050)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root
+ExecStart=/usr/bin/python3 /root/now_playing_api.py
+Restart=always
+RestartSec=3
+StandardOutput=append:/root/api.log
+StandardError=append:/root/api.log
+
+[Install]
+WantedBy=multi-user.target

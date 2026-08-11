@@ -1,0 +1,15 @@
+[Unit]
+Description=Ronaut Radio chat server (Flask-SocketIO, port 5051)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root
+ExecStart=/usr/bin/python3 /root/chat_server.py
+Restart=always
+RestartSec=3
+StandardOutput=append:/root/chat.log
+StandardError=append:/root/chat.log
+
+[Install]
+WantedBy=multi-user.target
