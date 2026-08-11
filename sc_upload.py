@@ -155,6 +155,27 @@ def upload(auth, stem, public=False):
     print(f"  OK -> {track.get('permalink_url')}")
 
 
+def refresh_artwork(auth, stems=None):
+    """PUT new artwork onto already-uploaded tracks (after a branding change)."""
+    uploaded = load_json(UPLOADED_PATH, {})
+    targets = stems or list(uploaded)
+    for stem in targets:
+        info = uploaded.get(stem)
+        if not info or info.get("revoked"):
+            continue
+        art = os.path.join(SC_DIR, stem + ".jpg")
+        if not os.path.exists(art):
+            print(f"  no artwork file for {stem}")
+            continue
+        body, status = api_curl(auth, [
+            "-X", "PUT", f"{API}/tracks/{info['id']}",
+            "-F", f"track[artwork_data]=@{art}"])
+        if status == "200":
+            print(f"artwork updated: {stem}")
+        else:
+            print(f"FAILED artwork {stem}: HTTP {status} {body[:160]}")
+
+
 def publish_all(auth):
     uploaded = load_json(UPLOADED_PATH, {})
     for stem, info in uploaded.items():
@@ -183,6 +204,10 @@ if __name__ == "__main__":
 
     if argv and argv[0] == "--publish-all":
         publish_all(auth)
+        sys.exit(0)
+
+    if argv and argv[0] == "--refresh-artwork":
+        refresh_artwork(auth, argv[1:] or None)
         sys.exit(0)
 
     stems = argv or sorted(

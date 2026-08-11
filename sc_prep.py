@@ -25,6 +25,10 @@ OUT_DIR = "/root/soundcloud"
 TRACKLIST_DIR = "/root/tracklists"
 THUMB_DIR = "/var/www/html/sets/thumbs"
 STAFF_PICKS = "/root/staff_picks.json"
+BADGE_PATH = "/root/soundcloud/badge-overlay.png"  # transparent Ronaut badge
+BADGE_SIZE = 180        # px, on a 1000x1000 cover
+BADGE_MARGIN = 45
+THUMB_SEEK = "00:05:00"  # same frame the site thumbnail uses
 
 # 320 kbps sets (May 2026 audit) — lead with the best audio
 DEFAULT_SETS = [
@@ -118,6 +122,26 @@ def find_thumb(mp4, info):
     return None
 
 
+def make_artwork(src_mp4, out_jpg):
+    """Square 1000x1000 cover pulled fresh from the video (site thumbs are only 400px
+    wide — too soft for SoundCloud), with the Ronaut badge in the bottom-left."""
+    vf = ("crop='min(iw,ih)':'min(iw,ih)',scale=1000:1000")
+    if os.path.exists(BADGE_PATH):
+        filt = (f"[0:v]{vf}[bg];[1:v]scale={BADGE_SIZE}:{BADGE_SIZE}[b];"
+                f"[bg][b]overlay={BADGE_MARGIN}:{1000 - BADGE_SIZE - BADGE_MARGIN}")
+        cmd = ["ffmpeg", "-y", "-loglevel", "error", "-ss", THUMB_SEEK, "-i", src_mp4,
+               "-i", BADGE_PATH, "-filter_complex", filt, "-frames:v", "1",
+               "-q:v", "2", out_jpg]
+    else:
+        cmd = ["ffmpeg", "-y", "-loglevel", "error", "-ss", THUMB_SEEK, "-i", src_mp4,
+               "-vf", vf, "-frames:v", "1", "-q:v", "2", out_jpg]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    if r.returncode != 0:
+        print(f"  artwork ffmpeg failed: {r.stderr[:160]}")
+        return False
+    return True
+
+
 def prep(mp4):
     src = os.path.join("/root", mp4)
     if not os.path.exists(src):
@@ -146,12 +170,17 @@ def prep(mp4):
     n_tracks = len([t for t in tl.get("tracklist", []) if not t.get("needs_id")])
     print(f"  description: {n_tracks} tracks in tracklist")
 
-    thumb = find_thumb(mp4, info)
-    if thumb:
-        subprocess.run(["cp", thumb, os.path.join(OUT_DIR, safe + ".jpg")])
-        print(f"  artwork: {os.path.basename(thumb)}")
+    art_out = os.path.join(OUT_DIR, safe + ".jpg")
+    if make_artwork(src, art_out):
+        badged = " + badge" if os.path.exists(BADGE_PATH) else ""
+        print(f"  artwork: 1000x1000 from video{badged}")
     else:
-        print("  artwork: NOT FOUND")
+        thumb = find_thumb(mp4, info)
+        if thumb:
+            subprocess.run(["cp", thumb, art_out])
+            print(f"  artwork: fell back to site thumbnail ({os.path.basename(thumb)})")
+        else:
+            print("  artwork: NOT FOUND")
 
 
 if __name__ == "__main__":
