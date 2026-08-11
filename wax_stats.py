@@ -125,6 +125,8 @@ def update(json_path: str):
 
 
 if __name__ == "__main__":
+    # Line-buffer stdout so nohup/cron logs stream instead of flushing at exit
+    sys.stdout.reconfigure(line_buffering=True)
     if len(sys.argv) < 2:
         print("Usage: python3 wax_stats.py <tracklist.json|directory>")
         sys.exit(1)
