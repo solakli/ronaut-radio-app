@@ -84,12 +84,18 @@ def build_description(mp4, info, tl_data):
     lines.append(intro)
     lines.append("")
 
+    def sc_ts(sec):
+        """SoundCloud only links H:MM:SS / M:SS — not 76:00-style total minutes."""
+        sec = int(sec or 0)
+        h, m, s = sec // 3600, (sec % 3600) // 60, sec % 60
+        return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
+
     tracks = [t for t in tl_data.get("tracklist", []) if not t.get("needs_id")]
     tracks.sort(key=lambda t: t.get("start_time", 0))
     if tracks:
         lines.append("Tracklist:")
         for t in tracks:
-            ts = t.get("start_time_formatted", "")
+            ts = sc_ts(t.get("start_time"))
             artist = t["artists"][0] if t.get("artists") else "Unknown"
             meta = [v for v in (t.get("label"), str(t.get("year") or "")) if v and not JUNK.match(v.strip())]
             suffix = f" ({', '.join(meta)})" if meta else ""
