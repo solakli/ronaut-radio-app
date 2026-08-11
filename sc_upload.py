@@ -99,9 +99,15 @@ def set_number(stem):
 
 
 def title_for(stem):
-    """Reconstruct a display title from the file stem."""
-    base = re.sub(r"^Ronaut[\[_]\d+[\]_]*\s*[-_]*", "", stem)
-    base = re.sub(r"[_]+", " ", base).strip(" -")
+    """Prefer the real set title from the description's intro line, else the file stem."""
+    base = ""
+    desc_p = os.path.join(SC_DIR, stem + ".txt")
+    if os.path.exists(desc_p):
+        first = open(desc_p).readline()
+        base = first.split(" — recorded live")[0].strip()
+    if not base:
+        base = re.sub(r"^Ronaut[\[_]\d+[\]_]*\s*[-_]*", "", stem)
+        base = re.sub(r"[_]+", " ", base).strip(" -")
     num = set_number(stem)
     return f"{base} — Ronaut [{num}]" if num else base
 
