@@ -104,9 +104,17 @@ echo "  Thumb: $THUMB_DIR/$THUMB_NAME.jpg ($(ls -lh "$THUMB_DIR/$THUMB_NAME.jpg"
 echo "  Duration: ${DURATION}s"
 
 echo ""
+# Step 5: Full pipeline in background (track ID → Discogs → wax → wantlist → SoundCloud private)
+SAFE_STEM=$(echo "${MP4_FILE%.mp4}" | sed -E 's/[^A-Za-z0-9._-]+/_/g')
+echo "[5/5] Starting full pipeline in background (track ID → Discogs → SoundCloud)..."
+nohup /root/ronaut-radio-app/process_set.sh "$MP4_FILE" > /dev/null 2>&1 &
+echo "  Follow progress: tail -f /root/process_${SAFE_STEM}.log"
+
+echo ""
 echo "=== DONE ==="
 echo "Set '$TITLE' added to Staff Picks"
 echo "It will appear on the website immediately (API reads dynamically)"
+echo "Tracklist + SoundCloud upload are processing in the background (see log above)"
 echo ""
 echo "Remember to commit and push staff_picks.json from local:"
 echo "  git pull on VPS or scp staff_picks.json locally and git push"
