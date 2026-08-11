@@ -158,7 +158,7 @@ def upload(auth, stem, public=False):
 def publish_all(auth):
     uploaded = load_json(UPLOADED_PATH, {})
     for stem, info in uploaded.items():
-        if info.get("sharing") == "public":
+        if info.get("sharing") == "public" or info.get("revoked"):
             continue
         body, status = api_curl(auth, [
             "-X", "PUT", f"{API}/tracks/{info['id']}",
